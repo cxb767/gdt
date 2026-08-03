@@ -1404,6 +1404,8 @@ function App() {
       const done = hasSteps ? (isNA || task.steps.every((_,si)=>checks[bk+'__s'+si])) : checks[bk];
       return isNA ? '해당없음' : (done ? '완료' : '미완료');
     }
+    const ddToday = getDdayTasksForDate(y,m,d); // 오늘 해당하는 훈련계획(D-day) 단계
+    const ddTodayText = ddToday.length ? ddToday.map(x=>`${x.text} (${x.law})`).join(' / ') : '해당없음';
     let txt = `[기동대장 일일업무일지] ${y}.${String(m+1).padStart(2,'0')}.${String(d).padStart(2,'0')}(${dows[new Date(y,m,d).getDay()]})\n`;
     txt += `${'─'.repeat(30)}\n`;
     if(!isWorkday(y,m,d)){
@@ -1428,16 +1430,14 @@ function App() {
       txt += `2. 예비군부대 정보현황 수정 : ${dstat('부대정보현황 수정')}\n`;
       txt += `3. 전출입자 관리\n   가. 전입자 확인/처리 : 00명(성명) — ${dstat('전입자 처리')}\n   나. 전출자 확인/처리 : 00명(성명) — ${dstat('전출자 확인·전입요청 처리')}\n`;
       txt += `4. 출귀국자 관리 : 00명(성명) 출국, 00명(성명) 귀국 — ${dstat('출귀국자 연기 처리')}\n`;
-      txt += `5. 보류자 관리(출귀국자 제외) : 해당없음 (기동대는 보류자소대 없음)\n`;
-      txt += `6. 병력동원관리 : 대체지정자·지정삭제자·전시근로소집 처리 00명\n`;
-      txt += `7. 전투준비태세\n   가. 지역방위작전 가용자원 확인 : 000/000명\n   나. 주요직위자 전투편성 조정\n   다. 작전요소별편성 여부 : 00명 편성완료\n   라. 예비군장비 물자수령 및 국동체 재산입력\n   마. 예비군물자 창고 점검 : 이상없음\n   바. 비상연락대상자 : 이상없음\n`;
-      txt += `8. 훈련 D-day 업무 확인 : ${dstat('훈련 D-day 업무 확인')}\n`;
-      txt += `9. 기타 신상변동자(나의업무) 확인 : 주요참고 확인\n`;
-      txt += `10. 법규위규자 관리 : 00명\n`;
-      txt += `11. 기타 오전 실시 업무 : 주요참고 확인\n\n`;
+      txt += `5. 전투준비태세\n   가. 지역방위작전 가용자원 확인 : 000/000명\n   나. 주요직위자 전투편성 조정\n   다. 작전요소별편성 여부 : 00명 편성완료\n   라. 예비군장비 물자수령 및 국동체 재산입력\n   마. 예비군물자 창고 점검 : 이상없음\n   바. 비상연락대상자 : 이상없음\n`;
+      txt += `6. 훈련 D-day 업무 확인 : ${dstat('훈련 D-day 업무 확인')}\n`;
+      txt += `7. 기타 신상변동자(나의업무) 확인 : 주요참고 확인\n`;
+      txt += `8. 법규위규자 관리 : 00명\n`;
+      txt += `9. 기타 오전 실시 업무 : 주요참고 확인\n\n`;
 
       txt += `[13:00~17:30 오후업무]\n`;
-      txt += `1. 예비군훈련 D-day 절차(D-35~D+3) : 훈련계획 탭 참조\n`;
+      txt += `1. 예비군훈련 D-day 절차(D-35~D+3) : ${ddTodayText}\n`;
       txt += `2. 훈련 미참자 차수처리·고발 검토 : ${dstat('훈련 미참자 차수처리·고발 검토')}\n`;
       txt += `3. 연기원서 접수 및 처리 : ${dstat('연기원서 접수 및 처리')}\n`;
       txt += `4. 소집통지서 전달 현황 확인 : ${dstat('소집통지서 전달 현황 확인')}\n`;
@@ -1462,11 +1462,6 @@ function App() {
       txt += `3. 퇴근 후 시간계획 확인 : 주요참고 확인\n`;
       txt += `4. 일일 군기강확립 및 사고예방 정신교육 : 해당일자 교육사항\n`;
       txt += `5. 임무분담제 시행 : 완료\n`;
-    }
-    const ddToday = getDdayTasksForDate(y,m,d);
-    if(ddToday.length){
-      txt += `\n■ 금일 D-day 해당 업무\n`;
-      ddToday.forEach(x=>{ txt += `• ${x.text} (${x.law})\n`; });
     }
     const masterToday = getMasterTasksForDate(y,m,d,masterTasks).filter(x=>!x.preview);
     if(masterToday.length){
