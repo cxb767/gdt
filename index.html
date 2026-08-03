@@ -1411,7 +1411,7 @@ function App() {
     } else {
       txt += `[출근~09:00 출근]\n`;
       txt += `1. 출입문 개방 : ${dstat('일일업무일지 확인·오늘 업무 점검')}\n`;
-      txt += `2. 동대출입문 개방\n`;
+      txt += `2. 기동대출입문 개방\n`;
       txt += `3. 컴퓨터 켜기/점호 준비\n   가. 부팅/국동체인증서 설치(CD)\n   나. 국동체 접속\n`;
       txt += `4. 초과수당 신청(조기출근 시)\n`;
       txt += `5. 점호준비: 일일업무일지 불러오기/오늘의 업무 확인 : ${dstat('일일업무일지 확인·오늘 업무 점검')}\n\n`;
@@ -1442,7 +1442,7 @@ function App() {
       txt += `3. 연기원서 접수 및 처리 : ${dstat('연기원서 접수 및 처리')}\n`;
       txt += `4. 소집통지서 전달 현황 확인 : ${dstat('소집통지서 전달 현황 확인')}\n`;
       txt += `5. 편성카드·대원 명부 점검 : ${dstat('편성카드·대원 명부 점검')}\n`;
-      txt += `6. 민원접수 : 0 유선, 0 동대방문\n`;
+      txt += `6. 민원접수 : 0 유선, 0 기동대방문\n`;
       txt += `7. 업무연락 확인조치 : 수신 00 / 발송 00건\n   가. 제목 작성, 확인완료 등 결과\n`;
       txt += `8. 기타 오후 실시 업무 : 주요참고 확인\n\n`;
 
@@ -1740,22 +1740,22 @@ function App() {
               <span><b style={{color:C.purple2,fontSize:13}}>{stats.wrn}</b> 3차⚠</span>
             </div>
             <div style={{display:'flex',gap:3,overflowX:'auto'}}>
+              <div style={{position:'relative',flexShrink:0}}>
+                <button style={s.tab(mode==='journal'||mode==='rwlog')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
+                {showUnitMenu && (<>
+                  <div onClick={()=>setShowUnitMenu(false)} style={{position:'fixed',inset:0,zIndex:190}}/>
+                  <div style={{position:'absolute',top:'100%',left:0,marginTop:2,background:C.bg1,border:`1px solid ${C.gold}`,zIndex:200,minWidth:140}}>
+                    <button onClick={()=>{setMode('journal');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='journal'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📝 업무일지</button>
+                    <button onClick={()=>{setMode('rwlog');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='rwlog'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📀 CD 작업일지</button>
+                  </div>
+                </>)}
+              </div>
               {[['cal','📅 월력'],['daily','📋 오늘업무'],['person','👥 자원'],['train','🎯 훈련'],['dday','⏱ 훈련계획'],['master','🗂 업무마스터']].map(([m,l])=>(
                 <button key={m} style={{...s.tab(mode===m), position:'relative'}} onClick={()=>setMode(m)}>
                   {l}
                   {m==='master' && unplannedTasks.length>0 && <span style={{position:'absolute',top:-4,right:-4,background:C.red2,color:'#fff',fontSize:8,fontFamily:fontMono,padding:'1px 4px',borderRadius:8}}>{unplannedTasks.length}</span>}
                 </button>
               ))}
-              <div style={{position:'relative',flexShrink:0}}>
-                <button style={s.tab(mode==='journal'||mode==='rwlog')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
-                {showUnitMenu && (<>
-                  <div onClick={()=>setShowUnitMenu(false)} style={{position:'fixed',inset:0,zIndex:190}}/>
-                  <div style={{position:'absolute',top:'100%',right:0,marginTop:2,background:C.bg1,border:`1px solid ${C.gold}`,zIndex:200,minWidth:140}}>
-                    <button onClick={()=>{setMode('journal');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='journal'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📝 업무일지</button>
-                    <button onClick={()=>{setMode('rwlog');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='rwlog'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📀 CD 작업일지</button>
-                  </div>
-                </>)}
-              </div>
             </div>
           </div>
         ) : (
@@ -1769,12 +1769,6 @@ function App() {
               </div>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:3,padding:'8px 10px',borderRight:`1px solid ${C.g4}`}}>
-              {[['cal','📅 월력표'],['daily','📋 오늘업무'],['person','👥 자원관리'],['train','🎯 훈련관리'],['dday','⏱ 훈련계획'],['master','🗂 업무마스터']].map(([m,l])=>(
-                <button key={m} style={{...s.tab(mode===m), position:'relative'}} onClick={()=>setMode(m)}>
-                  {l}
-                  {m==='master' && unplannedTasks.length>0 && <span style={{position:'absolute',top:-6,right:-6,background:C.red2,color:'#fff',fontSize:8,fontFamily:fontMono,padding:'1px 4px',borderRadius:8}}>{unplannedTasks.length}</span>}
-                </button>
-              ))}
               <div style={{position:'relative',flexShrink:0}}>
                 <button style={s.tab(mode==='journal'||mode==='rwlog')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
                 {showUnitMenu && (<>
@@ -1785,6 +1779,12 @@ function App() {
                   </div>
                 </>)}
               </div>
+              {[['cal','📅 월력표'],['daily','📋 오늘업무'],['person','👥 자원관리'],['train','🎯 훈련관리'],['dday','⏱ 훈련계획'],['master','🗂 업무마스터']].map(([m,l])=>(
+                <button key={m} style={{...s.tab(mode===m), position:'relative'}} onClick={()=>setMode(m)}>
+                  {l}
+                  {m==='master' && unplannedTasks.length>0 && <span style={{position:'absolute',top:-6,right:-6,background:C.red2,color:'#fff',fontSize:8,fontFamily:fontMono,padding:'1px 4px',borderRadius:8}}>{unplannedTasks.length}</span>}
+                </button>
+              ))}
             </div>
             <div style={{display:'flex',alignItems:'center',gap:6,padding:'8px 10px',borderRight:`1px solid ${C.g4}`}}>
               <button onClick={exportAllData} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt2,padding:'5px 9px',fontSize:10,cursor:'pointer',fontFamily:fontMono}}>⬇ 전체 내보내기</button>
