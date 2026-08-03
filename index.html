@@ -1395,24 +1395,73 @@ function App() {
     const t=today, y=t.getFullYear(), m=t.getMonth(), d=t.getDate();
     const dows=['일','월','화','수','목','금','토'];
     const tomorrow=new Date(y,m,d+1);
+    // 오늘 날짜 기준, 특정 일일업무(텍스트로 매칭)의 완료여부를 "완료"/"미완료"로 반환
+    function dstat(taskText){
+      const bk = dailyKey+'_daily_'+taskText;
+      const task = (masterTasks||[]).find(x=>x.period==='daily' && x.text===taskText);
+      const hasSteps = task && task.steps && task.steps.length;
+      const isNA = hasSteps && checks[bk+'__na'];
+      const done = hasSteps ? (isNA || task.steps.every((_,si)=>checks[bk+'__s'+si])) : checks[bk];
+      return isNA ? '해당없음' : (done ? '완료' : '미완료');
+    }
     let txt = `[기동대장 일일업무일지] ${y}.${String(m+1).padStart(2,'0')}.${String(d).padStart(2,'0')}(${dows[new Date(y,m,d).getDay()]})\n`;
     txt += `${'─'.repeat(30)}\n`;
     if(!isWorkday(y,m,d)){
       txt += `※ 금일은 휴무일(토·일요일 또는 공휴일)로 출근하지 않았습니다.\n`;
     } else {
-      txt += `■ 금일 실시업무 (완료/미완료)\n`;
-      buildDailyGroups(masterTasks).forEach(sec=>{
-        txt += `【${sec.sec}】\n`;
-        sec.items.forEach(item=>{
-          const bk = dailyKey+'_daily_'+item.t;
-          const hasSteps = item.steps && item.steps.length;
-          const isNA = hasSteps && checks[bk+'__na'];
-          const done = hasSteps ? (isNA || item.steps.every((_,si)=>checks[bk+'__s'+si])) : checks[bk];
-          const mark = isNA ? '–' : (done ? '✓' : '☐');
-          const suffix = isNA ? ' (해당없음)' : (done ? '' : ' (미완료)');
-          txt += `${mark} ${item.t}${suffix}\n`;
-        });
-      });
+      txt += `[출근~09:00 출근]\n`;
+      txt += `1. 출입문 개방 : ${dstat('일일업무일지 확인·오늘 업무 점검')}\n`;
+      txt += `2. 동대출입문 개방\n`;
+      txt += `3. 컴퓨터 켜기/점호 준비\n   가. 부팅/국동체인증서 설치(CD)\n   나. 국동체 접속\n`;
+      txt += `4. 초과수당 신청(조기출근 시)\n`;
+      txt += `5. 점호준비: 일일업무일지 불러오기/오늘의 업무 확인 : ${dstat('일일업무일지 확인·오늘 업무 점검')}\n\n`;
+
+      txt += `[09:00~09:20 아침점호]\n`;
+      txt += `1. 인원/건강상태 체크 : 이상없음\n`;
+      txt += `2. 애국가/복무신조 제창\n`;
+      txt += `3. 지시강조사항 하달\n   가. 업무예정사항 확인 : 완료\n   나. 임무분담제 시행 확인 : 완료\n   다. 지시강조사항 내용 : \n`;
+      txt += `4. 장비 수시일일검사 : 4개(TRS·핸드토키·쌍안경·나침의) ${dstat('장비 일일점검 (TRS·핸드토키·쌍안경·나침의)')==='완료'?'이상없음':'미확인'}\n`;
+      txt += `5. 휴대폰 회수 : 00대 완료\n\n`;
+
+      txt += `[09:20~12:00 오전업무]\n`;
+      txt += `1. 질의응답 확인 : 00건 (${dstat('국동체 질의응답 확인·처리')})\n`;
+      txt += `2. 예비군부대 정보현황 수정 : ${dstat('부대정보현황 수정')}\n`;
+      txt += `3. 전출입자 관리\n   가. 전입자 확인/처리 : 00명(성명) — ${dstat('전입자 처리')}\n   나. 전출자 확인/처리 : 00명(성명) — ${dstat('전출자 확인·전입요청 처리')}\n`;
+      txt += `4. 출귀국자 관리 : 00명(성명) 출국, 00명(성명) 귀국 — ${dstat('출귀국자 연기 처리')}\n`;
+      txt += `5. 보류자 관리(출귀국자 제외) : 해당없음 (기동대는 보류자소대 없음)\n`;
+      txt += `6. 병력동원관리 : 대체지정자·지정삭제자·전시근로소집 처리 00명\n`;
+      txt += `7. 전투준비태세\n   가. 지역방위작전 가용자원 확인 : 000/000명\n   나. 주요직위자 전투편성 조정\n   다. 작전요소별편성 여부 : 00명 편성완료\n   라. 예비군장비 물자수령 및 국동체 재산입력\n   마. 예비군물자 창고 점검 : 이상없음\n   바. 비상연락대상자 : 이상없음\n`;
+      txt += `8. 훈련 D-day 업무 확인 : ${dstat('훈련 D-day 업무 확인')}\n`;
+      txt += `9. 기타 신상변동자(나의업무) 확인 : 주요참고 확인\n`;
+      txt += `10. 법규위규자 관리 : 00명\n`;
+      txt += `11. 기타 오전 실시 업무 : 주요참고 확인\n\n`;
+
+      txt += `[13:00~17:30 오후업무]\n`;
+      txt += `1. 예비군훈련 D-day 절차(D-35~D+3) : 훈련계획 탭 참조\n`;
+      txt += `2. 훈련 미참자 차수처리·고발 검토 : ${dstat('훈련 미참자 차수처리·고발 검토')}\n`;
+      txt += `3. 연기원서 접수 및 처리 : ${dstat('연기원서 접수 및 처리')}\n`;
+      txt += `4. 소집통지서 전달 현황 확인 : ${dstat('소집통지서 전달 현황 확인')}\n`;
+      txt += `5. 편성카드·대원 명부 점검 : ${dstat('편성카드·대원 명부 점검')}\n`;
+      txt += `6. 민원접수 : 0 유선, 0 동대방문\n`;
+      txt += `7. 업무연락 확인조치 : 수신 00 / 발송 00건\n   가. 제목 작성, 확인완료 등 결과\n`;
+      txt += `8. 기타 오후 실시 업무 : 주요참고 확인\n\n`;
+
+      txt += `[17:30~17:50 전투일일결산]\n`;
+      txt += `1. 전투준비태세 변경내용 : 없음\n`;
+      txt += `2. 상향식 일일결산\n   가. 주요 실시예정사항\n   나. 병영생활행동강령 준수 여부\n   다. 애로 및 건의사항\n`;
+      txt += `3. 보안일일결산\n   가. 정보현황 확인 : 이상없음\n   나. PC·CD 내 각종 군사자료 보관여부 : 이상없음\n   다. 전산보안진단체계 임시파일 및 불필요파일 제거\n   라. PC off 등 전원 확인 : 완료\n   마. 열쇠보관함 잠금장치 확인 : 완료\n   바. 비밀관리기록부·비공개문서목록표·보안관계철 작성 : 완료\n   사. 보안자료실 확인/업데이트 : 없음\n   아. 휴대폰 분배·일일보안교육 완료\n   자. 국방동원정보체계 보안점검 : 세부내용 확인\n`;
+      txt += `4. 부대운영비 결산 : 00건 (${dstat('금전출납부 입력')})\n`;
+      txt += `5. 기타\n   가. 나의 업무 확인내용\n   나. 질의응답 확인 : 0건\n`;
+      txt += `6. SMS/LMS 잔여건수 : 00/00건\n`;
+      txt += `7. 주요예정사항 확인 및 일일업무일지 결재 : ${dstat('일일업무일지 결과 입력·결재')}\n`;
+      txt += `8. CD 국동체 국방인증서 반납 : 00장 ${dstat('사무실 시건·CEOI 확인·퇴근')}\n\n`;
+
+      txt += `[17:50~18:00 퇴근점호]\n`;
+      txt += `1. 인원·건강점검 : 이상없음\n`;
+      txt += `2. 복무신조/구호제창\n`;
+      txt += `3. 퇴근 후 시간계획 확인 : 주요참고 확인\n`;
+      txt += `4. 일일 군기강확립 및 사고예방 정신교육 : 해당일자 교육사항\n`;
+      txt += `5. 임무분담제 시행 : 완료\n`;
     }
     const ddToday = getDdayTasksForDate(y,m,d);
     if(ddToday.length){
@@ -1690,20 +1739,23 @@ function App() {
               <span><b style={{color:C.red2,fontSize:13}}>{stats.abs}</b> 미참</span>
               <span><b style={{color:C.purple2,fontSize:13}}>{stats.wrn}</b> 3차⚠</span>
             </div>
-            <div style={{display:'flex',gap:3,overflowX:'auto',position:'relative'}}>
+            <div style={{display:'flex',gap:3,overflowX:'auto'}}>
               {[['cal','📅 월력'],['daily','📋 오늘업무'],['person','👥 자원'],['train','🎯 훈련'],['dday','⏱ 훈련계획'],['master','🗂 업무마스터']].map(([m,l])=>(
                 <button key={m} style={{...s.tab(mode===m), position:'relative'}} onClick={()=>setMode(m)}>
                   {l}
                   {m==='master' && unplannedTasks.length>0 && <span style={{position:'absolute',top:-4,right:-4,background:C.red2,color:'#fff',fontSize:8,fontFamily:fontMono,padding:'1px 4px',borderRadius:8}}>{unplannedTasks.length}</span>}
                 </button>
               ))}
-              <button style={s.tab(mode==='journal'||mode==='rwlog')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
-              {showUnitMenu && (
-                <div style={{position:'absolute',top:'100%',right:0,marginTop:2,background:C.bg1,border:`1px solid ${C.gold}`,zIndex:200,minWidth:140}}>
-                  <button onClick={()=>{setMode('journal');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='journal'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📝 업무일지</button>
-                  <button onClick={()=>{setMode('rwlog');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='rwlog'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📀 CD 작업일지</button>
-                </div>
-              )}
+              <div style={{position:'relative',flexShrink:0}}>
+                <button style={s.tab(mode==='journal'||mode==='rwlog')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
+                {showUnitMenu && (<>
+                  <div onClick={()=>setShowUnitMenu(false)} style={{position:'fixed',inset:0,zIndex:190}}/>
+                  <div style={{position:'absolute',top:'100%',right:0,marginTop:2,background:C.bg1,border:`1px solid ${C.gold}`,zIndex:200,minWidth:140}}>
+                    <button onClick={()=>{setMode('journal');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='journal'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📝 업무일지</button>
+                    <button onClick={()=>{setMode('rwlog');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='rwlog'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📀 CD 작업일지</button>
+                  </div>
+                </>)}
+              </div>
             </div>
           </div>
         ) : (
@@ -1716,21 +1768,23 @@ function App() {
                 <div style={{fontSize:9,color:C.g7,fontFamily:fontMono,letterSpacing:1}}>MOBILE UNIT CDR · 국방부훈령 제3117호</div>
               </div>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:3,padding:'8px 10px',borderRight:`1px solid ${C.g4}`,position:'relative'}}
-              onMouseEnter={()=>setShowUnitMenu(true)} onMouseLeave={()=>setShowUnitMenu(false)}>
+            <div style={{display:'flex',alignItems:'center',gap:3,padding:'8px 10px',borderRight:`1px solid ${C.g4}`}}>
               {[['cal','📅 월력표'],['daily','📋 오늘업무'],['person','👥 자원관리'],['train','🎯 훈련관리'],['dday','⏱ 훈련계획'],['master','🗂 업무마스터']].map(([m,l])=>(
                 <button key={m} style={{...s.tab(mode===m), position:'relative'}} onClick={()=>setMode(m)}>
                   {l}
                   {m==='master' && unplannedTasks.length>0 && <span style={{position:'absolute',top:-6,right:-6,background:C.red2,color:'#fff',fontSize:8,fontFamily:fontMono,padding:'1px 4px',borderRadius:8}}>{unplannedTasks.length}</span>}
                 </button>
               ))}
-              <button style={s.tab(mode==='journal'||mode==='rwlog')} onClick={()=>setMode('journal')}>🏢 부대관리</button>
-              {showUnitMenu && (
-                <div style={{position:'absolute',top:'100%',left:0,background:C.bg1,border:`1px solid ${C.gold}`,zIndex:200,minWidth:150}}>
-                  <button onClick={()=>{setMode('journal');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='journal'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📝 업무일지</button>
-                  <button onClick={()=>{setMode('rwlog');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='rwlog'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📀 CD 작업일지</button>
-                </div>
-              )}
+              <div style={{position:'relative',flexShrink:0}}>
+                <button style={s.tab(mode==='journal'||mode==='rwlog')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
+                {showUnitMenu && (<>
+                  <div onClick={()=>setShowUnitMenu(false)} style={{position:'fixed',inset:0,zIndex:190}}/>
+                  <div style={{position:'absolute',top:'100%',left:0,marginTop:2,background:C.bg1,border:`1px solid ${C.gold}`,zIndex:200,minWidth:150}}>
+                    <button onClick={()=>{setMode('journal');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='journal'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📝 업무일지</button>
+                    <button onClick={()=>{setMode('rwlog');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='rwlog'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📀 CD 작업일지</button>
+                  </div>
+                </>)}
+              </div>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:6,padding:'8px 10px',borderRight:`1px solid ${C.g4}`}}>
               <button onClick={exportAllData} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt2,padding:'5px 9px',fontSize:10,cursor:'pointer',fontFamily:fontMono}}>⬇ 전체 내보내기</button>
