@@ -697,6 +697,7 @@ function App() {
   const [ddEditDate, setDdEditDate] = useState(null); // 수정 중인 기존 항목의 원래 날짜 (null이면 신규추가)
   const [ddResult, setDdResult] = useState(null);
   const [viewedTrain, setViewedTrain] = useState(null); // 아래 스케줄에 현재 "보기"로 표시 중인 훈련 (수정모드 아님)
+  const [showDdGrid, setShowDdGrid] = useState(false); // 별표4 방식 소집통지 기간표(일자별 그리드) 펼침여부
   const [ddTrains, setDdTrains] = useState(loadArr(K.DD));
   const [ddSteps, setDdSteps] = useState(()=>{
     const ex = loadArr('gdt_ddsteps');
@@ -2715,6 +2716,75 @@ function App() {
                   : <span style={{color:C.gold2,fontWeight:700}}>{ddEditDate?'✏ 수정중: ':'훈련일: '}{ddDate}</span>}
                 {' | '}<span style={{color:C.red2,fontWeight:700}}>전달마감: {ddResult.find(s=>s.d===-8)?.date}</span>
               </div>
+
+              <button onClick={()=>setShowDdGrid(v=>!v)} style={{background:C.bg1,border:`1px solid ${C.g5}`,color:C.tan,padding:'6px 11px',fontSize:11,fontWeight:700,cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
+                📊 별표4 방식 소집통지 기간표 {showDdGrid?'▲':'▼'}
+              </button>
+              {showDdGrid && (()=>{
+                const ddTrainKeyG = viewedTrain?viewedTrain.trainDate:(ddEditDate||ddDate);
+                if(!ddTrainKeyG) return null;
+                const D0=new Date(ddTrainKeyG); D0.setHours(0,0,0,0);
+                const tod0=new Date(); tod0.setHours(0,0,0,0);
+                const todOffset = Math.round((tod0-D0)/(1000*60*60*24));
+                const START=-32, END=2;
+                const cols=[]; for(let o=START;o<=END;o++){ const cd=new Date(D0.getTime()); cd.setDate(D0.getDate()+o); cols.push({o,cd}); }
+                const bands=[
+                  {label:'인터넷 신청', from:-30, to:-23, color:C.blue3, bg:'rgba(26,95,180,.22)'},
+                  {label:'모바일 전자고지', from:-22, to:-16, color:C.orange2, bg:'rgba(221,146,42,.22)'},
+                  {label:'이메일·우편·방문·FAX', from:-15, to:-8, color:C.red2, bg:'rgba(217,69,58,.22)'},
+                ];
+                const dows=['일','월','화','수','목','금','토'];
+                const cw=isMobile?22:26;
+                return (
+                  <div style={{overflowX:'auto',border:`1px solid ${C.g4}`,marginBottom:12,background:C.bg1}}>
+                    <div style={{display:'inline-block',minWidth:'100%'}}>
+                      {/* 날짜 헤더 */}
+                      <div style={{display:'flex'}}>
+                        <div style={{width:isMobile?92:130,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2}}/>
+                        {cols.map(c=>(
+                          <div key={c.o} style={{width:cw,flexShrink:0,textAlign:'center',borderRight:`1px solid rgba(0,0,0,.05)`,borderBottom:`1px solid ${C.g4}`,
+                            background:c.o===0?'rgba(200,160,64,.25)':(c.o===todOffset?'rgba(47,111,184,.18)':C.bg2),padding:'3px 0'}}>
+                            <div style={{fontSize:8,fontFamily:fontMono,color:c.o===0?C.gold2:C.txt3,fontWeight:c.o===0?900:400}}>{c.cd.getMonth()+1}.{c.cd.getDate()}</div>
+                            <div style={{fontSize:7,fontFamily:fontMono,color:C.txt3}}>{dows[c.cd.getDay()]}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* 밴드 행들 */}
+                      {bands.map((b,bi)=>(
+                        <div key={bi} style={{display:'flex'}}>
+                          <div style={{width:isMobile?92:130,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2,
+                            display:'flex',alignItems:'center',padding:'0 6px',fontSize:isMobile?9:10,color:b.color,fontWeight:700}}>{b.label}</div>
+                          {cols.map(c=>{
+                            const inBand = c.o>=b.from && c.o<=b.to;
+                            return (
+                              <div key={c.o} style={{width:cw,flexShrink:0,height:24,borderRight:`1px solid rgba(0,0,0,.05)`,borderBottom:`1px solid ${C.g4}`,
+                                background:inBand?b.bg:'transparent',
+                                borderTop:inBand?`2px solid ${b.color}`:'none', borderBottomWidth:inBand?2:1, borderBottomColor:inBand?b.color:C.g4,
+                                position:'relative'}}>
+                                {c.o===todOffset && <div style={{position:'absolute',left:'50%',top:-2,bottom:-2,width:2,background:C.blue3}}/>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                      {/* 전달완료 마감 / 훈련일 표시 행 */}
+                      <div style={{display:'flex'}}>
+                        <div style={{width:isMobile?92:130,flexShrink:0,borderRight:`1px solid ${C.g4}`,background:C.bg2,
+                          display:'flex',alignItems:'center',padding:'0 6px',fontSize:isMobile?9:10,color:C.red2,fontWeight:700}}>전달완료·훈련일</div>
+                        {cols.map(c=>(
+                          <div key={c.o} style={{width:cw,flexShrink:0,height:20,borderRight:`1px solid rgba(0,0,0,.05)`,
+                            background:c.o===-8?'rgba(217,69,58,.35)':(c.o===0?'rgba(200,160,64,.35)':'transparent'),
+                            display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            {c.o===-8 && <span style={{fontSize:8,color:C.red2,fontWeight:900}}>★</span>}
+                            {c.o===0 && <span style={{fontSize:8,color:C.gold2,fontWeight:900}}>▲</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {ddResult.map((step,i)=>{
                 const isPast=step.diff<0, isTd=step.diff===0, isSoon=step.diff>=0&&step.diff<=3;
                 const statusLabel=isPast?'완료':isTd?'오늘':step.diff===1?'내일':`${step.diff}일후`;
