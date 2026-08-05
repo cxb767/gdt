@@ -406,6 +406,16 @@ function getSortedMasterTasks(masterTasks){
     (PERIOD_ORDER[a.period]??9) - (PERIOD_ORDER[b.period]??9) || ((a.order??0) - (b.order??0))
   );
 }
+// 중복 의심 업무 그룹 찾기 — 업무명·주기·요일/일자 등이 완전히 같은 항목들을 묶어서 반환 (2개 이상 겹칠 때만)
+function findDuplicateMTGroups(masterTasks){
+  const map = new Map();
+  for(const t of (masterTasks||[])){
+    const sig = [t.text, t.period, t.day??'', t.dow??'', t.month??'', (t.nth||[]).join(','), (t.months||[]).join(','), t.assignedDate??''].join('|');
+    if(!map.has(sig)) map.set(sig, []);
+    map.get(sig).push(t);
+  }
+  return [...map.values()].filter(g=>g.length>1);
+}
 const WEEK_ORD = { 1:'첫째', 2:'둘째', 3:'셋째', 4:'넷째', 5:'다섯째', last:'마지막' };
 const DOW_NAME = ['일','월','화','수','목','금','토'];
 const GENERIC_LAW = new Set(['일일업무','순기업무']); // 기간명과 중복되는 의미없는 근거텍스트는 표시 생략
@@ -791,6 +801,7 @@ function App() {
   const [mtEditId, setMtEditId] = useState(null);
   const [mtFilter, setMtFilter] = useState('all'); // 업무관리 목록 기간별 필터: all/daily/weekly/monthly(=월간,nthweek포함)/quarterly/halfyear/yearly/unplanned
   const [showMtFilterMenu, setShowMtFilterMenu] = useState(false);
+  const [showDupCheck, setShowDupCheck] = useState(false); // 중복 의심 업무 찾기 팝업
   const emptyMt = {text:'',law:'',cls:'green',period:'monthly',dow:1,nth:[1],day:1,month:1,months:[1,7],section:'일일업무',badge:'정기',needsPlanning:false,assignedDate:'',active:true,holidayShift:true,howto:'',prep:[],steps:[],order:0};
   function moveMT(id, dir){ // dir: -1(위로) / 1(아래로) — 정렬된 목록 기준 인접 항목과 order값을 교체
     const sorted = getSortedMasterTasks(masterTasks);
@@ -2679,6 +2690,7 @@ function App() {
             <h2 style={{fontSize:15,fontWeight:900,color:C.tan,margin:0}}>업무 관리 목록</h2>
             <span style={{fontSize:10,color:C.txt3}}>전체 업무를 직접 추가·수정·삭제·주기설정 하세요</span>
             <div style={{display:'flex',gap:6,marginLeft:isMobile?0:'auto',width:isMobile?'100%':'auto'}}>
+              <button onClick={()=>setShowDupCheck(true)} style={{...s.btn(false),flex:isMobile?1:'none'}}>🔍 중복 찾기</button>
               <button onClick={exportAllData} style={{...s.btn(false),flex:isMobile?1:'none'}}>⬇ 전체 내보내기</button>
               <button onClick={()=>openMT()} style={{...s.btn(true),flex:isMobile?1:'none'}}>+ 업무 추가</button>
             </div>
@@ -2734,7 +2746,7 @@ function App() {
               const isFirst = idx===0, isLast = idx===arr.length-1;
               const tag = PERIOD_TAG[t.period];
               return (
-                <div key={t.id} style={{background:C.bg1,border:`1px solid ${C.g4}`,borderLeft:`4px solid ${isUnplanned?C.red3:(clsColor[PERIOD_COLOR[t.period]]||clsColor[t.cls]||C.g7)}`,padding:'9px 12px',opacity:t.active?1:.45,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                <div key={t.id+'_'+idx} style={{background:C.bg1,border:`1px solid ${C.g4}`,borderLeft:`4px solid ${isUnplanned?C.red3:(clsColor[PERIOD_COLOR[t.period]]||clsColor[t.cls]||C.g7)}`,padding:'9px 12px',opacity:t.active?1:.45,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                   <div style={{display:'flex',flexDirection:'column',gap:2}}>
                     <button onClick={()=>moveMT(t.id,-1)} disabled={isFirst} style={{background:'transparent',border:`1px solid ${C.g5}`,color:isFirst?C.g5:C.txt2,padding:'1px 6px',fontSize:9,cursor:isFirst?'default':'pointer'}}>▲</button>
                     <button onClick={()=>moveMT(t.id,1)} disabled={isLast} style={{background:'transparent',border:`1px solid ${C.g5}`,color:isLast?C.g5:C.txt2,padding:'1px 6px',fontSize:9,cursor:isLast?'default':'pointer'}}>▼</button>
@@ -3442,6 +3454,45 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* ══════════ 중복 의심 업무 찾기 ══════════ */}
+      {showDupCheck && (() => {
+        const dupGroups = findDuplicateMTGroups(masterTasks);
+        return (
+          <div onClick={()=>setShowDupCheck(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:520,display:'flex',alignItems:isMobile?'flex-end':'center',justifyContent:'center'}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:C.bg1,border:`1px solid ${C.g4}`,borderTop:`3px solid ${C.gold}`,width:isMobile?'100%':460,maxWidth:'96vw',maxHeight:isMobile?'90vh':'85vh',overflowY:'auto'}}>
+              <div style={{background:C.bg2,padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:`1px solid ${C.g4}`,position:'sticky',top:0}}>
+                <div style={{fontSize:14,fontWeight:900,color:C.gold}}>🔍 중복 의심 업무</div>
+                <button onClick={()=>setShowDupCheck(false)} style={{background:'transparent',border:'none',color:C.txt3,fontSize:20,cursor:'pointer'}}>✕</button>
+              </div>
+              <div style={{padding:14}}>
+                {dupGroups.length===0
+                  ? <div style={{textAlign:'center',padding:24,color:C.txt3,fontSize:12}}>업무명·주기·요일/일자가 완전히 같은 중복 항목이 없습니다.</div>
+                  : <>
+                      <div style={{fontSize:11,color:C.txt3,marginBottom:12,lineHeight:1.5}}>업무명·주기·요일/일자가 완전히 같은 항목들입니다. 남길 하나만 빼고 나머지를 지워주세요 (수행절차 내용이 서로 다를 수 있으니 확인 후 지워주세요).</div>
+                      {dupGroups.map((g,gi)=>(
+                        <div key={gi} style={{border:`1px solid ${C.g4}`,borderLeft:`4px solid ${C.red3}`,padding:'8px 10px',marginBottom:10}}>
+                          <div style={{fontSize:12,fontWeight:700,color:C.tan,marginBottom:6}}>{g[0].text} <span style={{fontSize:9,color:C.txt3,fontFamily:fontMono}}>({g.length}개 중복)</span></div>
+                          {g.map((t,ti)=>(
+                            <div key={t.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'5px 0',borderTop:ti>0?`1px solid rgba(0,0,0,.06)`:'none'}}>
+                              <div style={{fontSize:10,color:C.txt3,fontFamily:fontMono}}>
+                                {mtScheduleText(t)}{t.steps&&t.steps.length?` · 절차 ${t.steps.length}개`:''}{t.howto&&t.howto.trim()?' · 요령있음':''}
+                              </div>
+                              <div style={{display:'flex',gap:6,flexShrink:0}}>
+                                <button onClick={()=>{setShowDupCheck(false); openMT(t.id);}} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt2,padding:'4px 8px',fontSize:10,cursor:'pointer'}}>보기</button>
+                                <button onClick={()=>delMT(t.id)} style={{background:'transparent',border:`1px solid ${C.red2}`,color:C.red2,padding:'4px 8px',fontSize:10,cursor:'pointer'}}>삭제</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </>
+                }
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ══════════ 업무 일정 이동 팝업 ══════════ */}
       {moveTarget && (
