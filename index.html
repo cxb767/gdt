@@ -386,13 +386,19 @@ const C = {
   red:'#c0392b', red2:'#d9453a', red3:'#e8544a',
   orange:'#c17a10', orange2:'#dd922a',
   blue:'#e8f0fb', blue2:'#2b6cb8', blue3:'#1a5fb4',
-  purple2:'#6a4c93',
+  purple2:'#6a4c93', amber2:'#a97a1a', teal2:'#1f8a7a',
   txt:'#1a2530', txt2:'#5a6472', txt3:'#8b95a1',
 };
-const clsColor = { red:C.red2, gold:C.gold2, green:C.g8, blue:C.blue3, orange:C.orange2, purple:C.purple2 };
-// 중요도(필수/중요/정기) 대신 기간(일일/주간/월간/분기/반기/연간)으로 색상 구분
-const PERIOD_COLOR = { daily:'red', weekly:'blue', nthweek:'gold', monthly:'gold', quarterly:'purple', halfyear:'orange', yearly:'green', unplanned:'purple' };
+const clsColor = { red:C.red2, gold:C.gold2, green:C.g8, blue:C.blue3, orange:C.orange2, purple:C.purple2, amber:C.amber2, teal:C.teal2 };
+// 중요도(필수/중요/정기) 대신 기간(일일/주간/월간/분기/반기/연간)으로 색상 구분 — 서로 인접한 주기끼리 색이 겹치지 않도록 8개 기간에 8개 색 배정
+const PERIOD_COLOR = { daily:'red', weekly:'blue', nthweek:'amber', monthly:'amber', quarterly:'purple', halfyear:'orange', yearly:'green', unplanned:'teal' };
 const PERIOD_TAG = { daily:'일일', weekly:'주간', nthweek:'월간', monthly:'월간', quarterly:'분기', halfyear:'반기', yearly:'연간', unplanned:'지정' };
+const MT_FILTERS = [['all','전체'],['daily','일일업무'],['weekly','주간업무'],['monthly','월간업무'],['quarterly','분기업무'],['halfyear','반기업무'],['yearly','연간업무'],['unplanned','미계획업무']];
+function mtMatchesFilter(t, filter){
+  if(filter==='all') return true;
+  if(filter==='monthly') return t.period==='monthly' || t.period==='nthweek';
+  return t.period===filter;
+}
 const PERIOD_ORDER = { daily:0, weekly:1, nthweek:2, monthly:3, quarterly:4, halfyear:5, yearly:6, unplanned:7 };
 // 업무마스터 정렬: 기간(일일→주간→월간→분기→반기→연간→미계획) 우선, 그 안에서는 order값(수동조정 가능) 순
 function getSortedMasterTasks(masterTasks){
@@ -406,6 +412,7 @@ const GENERIC_LAW = new Set(['일일업무','순기업무']); // 기간명과 �
 const tagBg = {
   red:`rgba(192,57,43,.10)`, gold:`rgba(31,78,140,.08)`, green:`rgba(47,143,78,.10)`,
   blue:`rgba(26,95,180,.08)`, orange:`rgba(193,122,16,.10)`, purple:`rgba(106,76,147,.10)`,
+  amber:`rgba(169,122,26,.12)`, teal:`rgba(31,138,122,.10)`,
 };
 
 
@@ -445,7 +452,7 @@ function getMasterTasksForDate(y,m,d, masterTasks){
     if(t.period==='daily') continue; // 일일업무는 달력 태그가 아닌 인라인패널·오늘업무탭에서 별도 처리
     if(t.needsPlanning){
       // 미계획업무: 사용자가 지정한 assignedDate에만 표시
-      if(t.assignedDate===key) out.push({ text:t.text, cls:t.cls||'purple', law:t.law||'사용자 지정', masterId:t.id, unplanned:false, howto:t.howto||'', steps:t.steps||[], period:t.period });
+      if(t.assignedDate===key) out.push({ text:t.text, cls:PERIOD_COLOR[t.period]||t.cls||'purple', law:t.law||'사용자 지정', masterId:t.id, unplanned:false, howto:t.howto||'', steps:t.steps||[], period:t.period });
       continue;
     }
     const moves = t.moves||{};
@@ -454,12 +461,12 @@ function getMasterTasksForDate(y,m,d, masterTasks){
       const entry = moves[occ.key]; // undefined=그대로 / '__SKIP__'=삭제됨 / 날짜문자열=그 날짜로 이동됨
       if(occ.key===key){
         if(entry==='__SKIP__'){
-          out.push({ text:`${t.text} (이 회차 삭제됨)`, cls:t.cls||'green', law:'', masterId:t.id, preview:true, skipped:true, origKey:occ.key, period:t.period });
+          out.push({ text:`${t.text} (이 회차 삭제됨)`, cls:PERIOD_COLOR[t.period]||t.cls||'green', law:'', masterId:t.id, preview:true, skipped:true, origKey:occ.key, period:t.period });
         } else if(entry){
           // 이 회차는 다른 날짜로 이동됨 — 원래 날짜엔 이동 안내만 표시 (체크 불가)
-          out.push({ text:`${t.text} → ${entry} 로 이동됨`, cls:t.cls||'green', law:'', masterId:t.id, preview:true, movedOut:true, origKey:occ.key, period:t.period });
+          out.push({ text:`${t.text} → ${entry} 로 이동됨`, cls:PERIOD_COLOR[t.period]||t.cls||'green', law:'', masterId:t.id, preview:true, movedOut:true, origKey:occ.key, period:t.period });
         } else {
-          out.push({ text:t.text, cls:t.cls||'green', law:t.law||'', masterId:t.id, preview:false, howto:t.howto||'', steps:t.steps||[], period:t.period, origKey:occ.key });
+          out.push({ text:t.text, cls:PERIOD_COLOR[t.period]||t.cls||'green', law:t.law||'', masterId:t.id, preview:false, howto:t.howto||'', steps:t.steps||[], period:t.period, origKey:occ.key });
         }
       } else if(!entry) {
         const diff = Math.round((occ.shifted - target)/(1000*60*60*24));
@@ -476,7 +483,7 @@ function getMasterTasksForDate(y,m,d, masterTasks){
     // 다른 날짜에서 이 날짜로 옮겨온 회차 표시
     for(const origKey in moves){
       if(moves[origKey]===key){
-        out.push({ text:t.text, cls:t.cls||'green', law:t.law||'', masterId:t.id, preview:false, howto:t.howto||'', steps:t.steps||[], period:t.period, movedIn:true, origKey });
+        out.push({ text:t.text, cls:PERIOD_COLOR[t.period]||t.cls||'green', law:t.law||'', masterId:t.id, preview:false, howto:t.howto||'', steps:t.steps||[], period:t.period, movedIn:true, origKey });
       }
     }
   }
@@ -782,6 +789,8 @@ function App() {
   });
   const [showMTM, setShowMTM] = useState(false);
   const [mtEditId, setMtEditId] = useState(null);
+  const [mtFilter, setMtFilter] = useState('all'); // 업무관리 목록 기간별 필터: all/daily/weekly/monthly(=월간,nthweek포함)/quarterly/halfyear/yearly/unplanned
+  const [showMtFilterMenu, setShowMtFilterMenu] = useState(false);
   const emptyMt = {text:'',law:'',cls:'green',period:'monthly',dow:1,nth:[1],day:1,month:1,months:[1,7],section:'일일업무',badge:'정기',needsPlanning:false,assignedDate:'',active:true,holidayShift:true,howto:'',prep:[],steps:[],order:0};
   function moveMT(id, dir){ // dir: -1(위로) / 1(아래로) — 정렬된 목록 기준 인접 항목과 order값을 교체
     const sorted = getSortedMasterTasks(masterTasks);
@@ -1801,7 +1810,7 @@ function App() {
                   </div>
                 </>)}
               </div>
-              {[['cal','📅 월력'],['daily','📋 오늘업무'],['person','👥 자원'],['train','🎯 훈련'],['dday','⏱ 훈련계획'],['master','🗂 업무마스터']].map(([m,l])=>(
+              {[['cal','📅 월력'],['daily','📋 오늘업무'],['person','👥 자원'],['train','🎯 훈련'],['dday','⏱ 훈련계획'],['master','🗂 업무관리']].map(([m,l])=>(
                 <button key={m} style={{...s.tab(mode===m), position:'relative'}} onClick={()=>setMode(m)}>
                   {l}
                   {m==='master' && unplannedTasks.length>0 && <span style={{position:'absolute',top:-4,right:-4,background:C.red2,color:'#fff',fontSize:8,fontFamily:fontMono,padding:'1px 4px',borderRadius:8}}>{unplannedTasks.length}</span>}
@@ -1830,7 +1839,7 @@ function App() {
                   </div>
                 </>)}
               </div>
-              {[['cal','📅 월력표'],['daily','📋 오늘업무'],['person','👥 자원관리'],['train','🎯 훈련관리'],['dday','⏱ 훈련계획'],['master','🗂 업무마스터']].map(([m,l])=>(
+              {[['cal','📅 월력표'],['daily','📋 오늘업무'],['person','👥 자원관리'],['train','🎯 훈련관리'],['dday','⏱ 훈련계획'],['master','🗂 업무관리']].map(([m,l])=>(
                 <button key={m} style={{...s.tab(mode===m), position:'relative'}} onClick={()=>setMode(m)}>
                   {l}
                   {m==='master' && unplannedTasks.length>0 && <span style={{position:'absolute',top:-6,right:-6,background:C.red2,color:'#fff',fontSize:8,fontFamily:fontMono,padding:'1px 4px',borderRadius:8}}>{unplannedTasks.length}</span>}
@@ -1893,7 +1902,7 @@ function App() {
           {/* 미계획 업무 피드백 배너 */}
           {unplannedTasks.length>0 && (
             <div onClick={()=>setMode('master')} style={{cursor:'pointer',marginBottom:8,background:'rgba(176,48,32,.14)',border:`1px solid ${C.red2}`,borderLeft:`4px solid ${C.red3}`,padding:'8px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <span style={{fontSize:12,fontWeight:700,color:C.red3}}>⚠ 계획 필요 업무 {unplannedTasks.length}건 — 탭하여 업무마스터에서 날짜 지정</span>
+              <span style={{fontSize:12,fontWeight:700,color:C.red3}}>⚠ 계획 필요 업무 {unplannedTasks.length}건 — 탭하여 업무관리에서 날짜 지정</span>
               <span style={{fontSize:10,color:C.txt3}}>▶</span>
             </div>
           )}
@@ -2667,12 +2676,27 @@ function App() {
       {mode==='master' && (
         <div style={{padding:isMobile?10:11}}>
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,flexWrap:'wrap'}}>
-            <h2 style={{fontSize:15,fontWeight:900,color:C.tan,margin:0}}>업무 마스터 목록</h2>
+            <h2 style={{fontSize:15,fontWeight:900,color:C.tan,margin:0}}>업무 관리 목록</h2>
             <span style={{fontSize:10,color:C.txt3}}>전체 업무를 직접 추가·수정·삭제·주기설정 하세요</span>
             <div style={{display:'flex',gap:6,marginLeft:isMobile?0:'auto',width:isMobile?'100%':'auto'}}>
               <button onClick={exportAllData} style={{...s.btn(false),flex:isMobile?1:'none'}}>⬇ 전체 내보내기</button>
               <button onClick={()=>openMT()} style={{...s.btn(true),flex:isMobile?1:'none'}}>+ 업무 추가</button>
             </div>
+          </div>
+
+          <div style={{position:'relative',marginBottom:10}}>
+            <button onClick={()=>setShowMtFilterMenu(v=>!v)} style={{background:C.bg1,border:`1px solid ${C.g5}`,color:C.tan,padding:'7px 12px',fontSize:12,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+              🗂 {MT_FILTERS.find(f=>f[0]===mtFilter)?.[1]||'전체'} {showMtFilterMenu?'▲':'▼'}
+            </button>
+            {showMtFilterMenu && (<>
+              <div onClick={()=>setShowMtFilterMenu(false)} style={{position:'fixed',inset:0,zIndex:190}}/>
+              <div style={{position:'absolute',top:'100%',left:0,marginTop:4,background:C.bg1,border:`1px solid ${C.g5}`,boxShadow:'0 4px 12px rgba(0,0,0,.15)',zIndex:200,minWidth:160}}>
+                {MT_FILTERS.map(([key,label])=>(
+                  <button key={key} onClick={()=>{setMtFilter(key);setShowMtFilterMenu(false);}}
+                    style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mtFilter===key?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>{label}</button>
+                ))}
+              </div>
+            </>)}
           </div>
 
           {unplannedTasks.length>0 && (
@@ -2702,12 +2726,15 @@ function App() {
           </div>
 
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
-            {getSortedMasterTasks(masterTasks).map((t,idx,arr)=>{
+            {getSortedMasterTasks(masterTasks).filter(t=>mtMatchesFilter(t,mtFilter)).length===0 && (
+              <div style={{border:`1px dashed ${C.g4}`,padding:20,textAlign:'center',color:C.txt3,fontSize:12}}>해당 기간에 등록된 업무가 없습니다</div>
+            )}
+            {getSortedMasterTasks(masterTasks).filter(t=>mtMatchesFilter(t,mtFilter)).map((t,idx,arr)=>{
               const isUnplanned = t.needsPlanning && (!t.assignedDate || t.assignedDate < dailyKey);
               const isFirst = idx===0, isLast = idx===arr.length-1;
               const tag = PERIOD_TAG[t.period];
               return (
-                <div key={t.id} style={{background:C.bg1,border:`1px solid ${C.g4}`,borderLeft:`4px solid ${isUnplanned?C.red3:(clsColor[t.cls]||C.g7)}`,padding:'9px 12px',opacity:t.active?1:.45,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                <div key={t.id} style={{background:C.bg1,border:`1px solid ${C.g4}`,borderLeft:`4px solid ${isUnplanned?C.red3:(clsColor[PERIOD_COLOR[t.period]]||clsColor[t.cls]||C.g7)}`,padding:'9px 12px',opacity:t.active?1:.45,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                   <div style={{display:'flex',flexDirection:'column',gap:2}}>
                     <button onClick={()=>moveMT(t.id,-1)} disabled={isFirst} style={{background:'transparent',border:`1px solid ${C.g5}`,color:isFirst?C.g5:C.txt2,padding:'1px 6px',fontSize:9,cursor:isFirst?'default':'pointer'}}>▲</button>
                     <button onClick={()=>moveMT(t.id,1)} disabled={isLast} style={{background:'transparent',border:`1px solid ${C.g5}`,color:isLast?C.g5:C.txt2,padding:'1px 6px',fontSize:9,cursor:isLast?'default':'pointer'}}>▼</button>
