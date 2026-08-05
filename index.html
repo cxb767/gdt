@@ -362,20 +362,34 @@ const ANNUAL_TASKS = {
 const OWNER_COLOR = { 나:'gold', 대대:'blue', 사단:'purple' };
 function seedDdSteps(){
   return [
-    {d:-40, name:'훈련 최초 부과 (D-40)', desc:'동원훈련Ⅱ형 대상자 최초 부과 기준일', law:'훈령 제10조⑤1', cls:'purple', owner:'대대'},
-    {d:-35, name:'소집통지서·홍보메일 작성', desc:'소집통지서 초안 작성 + 홍보메일 준비', law:'훈령 제10조⑤', cls:'blue', owner:'나'},
-    {d:-31, name:'국방동원정보체계 훈련계획 입력', desc:'훈련소집 31일 전까지 국방동원정보체계에 훈련계획 입력 완료', law:'훈령 제10조⑤2', cls:'blue', owner:'나'},
-    {d:-30, name:'인터넷 신청 개시 (14:00±15분)', desc:'예비군홈페이지·앱 훈련일정 공시 시작 — 신청일포함 30일전', law:'훈령 제10조⑤2', cls:'gold', owner:'대대'},
-    {d:-23, name:'인터넷 신청 마감', desc:'미신청자 결산 — 신청일포함 23일전까지 완료', law:'훈령 제10조⑤2가', cls:'gold', owner:'나'},
-    {d:-22, name:'모바일 전자고지 시작', desc:'고지일포함 22일전부터 모바일 전자고지 실시', law:'훈령 제10조⑥1', cls:'orange', owner:'나'},
-    {d:-16, name:'모바일 전자고지 마감', desc:'고지일포함 16일전까지 완료 — 미수신자 재통지 준비', law:'훈령 제10조⑥2', cls:'orange', owner:'나'},
-    {d:-15, name:'이메일·우편·방문·FAX 발송 시작', desc:'전달일포함 15일전부터 소집통지서 발송 가능', law:'훈령 제10조⑦2다', cls:'red', owner:'나'},
-    {d:-8,  name:'소집통지서 전달 완료 마감 ★', desc:'전달일 미포함 7일전까지 교부 완료 필수', law:'훈령 제10조⑦5, 예비군법 제6조의2', cls:'red', owner:'나'},
-    {d:-4,  name:'사고자 입력 (D-4)', desc:'연기·출국 등 사고자 국방동원정보체계 입력', law:'훈령 제10조⑤', cls:'orange', owner:'나'},
-    {d:-2,  name:'전국단위·휴일훈련 신청 마감', desc:'신청일 미포함 3일전까지', law:'훈령 제10조⑤5', cls:'blue', owner:'나'},
-    {d:-1,  name:'훈련 전날 최종 안내', desc:'참석자 최종 문자·전화 안내 발송', law:'훈령 제10조', cls:'green', owner:'나'},
-    {d:0,   name:'훈련일 (D-day)', desc:'훈련 실시 — 당일 사고자 입력·결과 처리 준비', law:'훈령 제18조', cls:'gold', owner:'나'},
-    {d:1,   name:'훈련 결과 처리 (D+1)', desc:'결과 국동체 확인 + 미참자 차수처리 + 고발 검토', law:'훈령 제18조②', cls:'green', owner:'나'},
+    {d:-40, name:'훈련 최초 부과 (D-40)', desc:'동원훈련Ⅱ형 대상자 최초 부과 기준일', law:'훈령 제10조⑤1', cls:'purple', owner:'대대',
+      steps:['동원훈련Ⅱ형 대상자 명단 확인','국방동원정보체계에 최초 부과 처리']},
+    {d:-35, name:'소집통지서·홍보메일 작성', desc:'소집통지서 초안 작성 + 홍보메일 준비', law:'훈령 제10조⑤', cls:'blue', owner:'나',
+      steps:['소집통지서 초안 작성','홍보 문자·메일 내용 준비']},
+    {d:-31, name:'국방동원정보체계 훈련계획 입력', desc:'훈련소집 31일 전까지 국방동원정보체계에 훈련계획 입력 완료', law:'훈령 제10조⑤2', cls:'blue', owner:'나',
+      steps:['훈련일시·장소·유형 국방동원정보체계 입력','입력 완료 여부 확인']},
+    {d:-30, name:'인터넷 신청 개시 (14:00±15분)', desc:'예비군홈페이지·앱 훈련일정 공시 시작 — 신청일포함 30일전', law:'훈령 제10조⑤2', cls:'gold', owner:'대대',
+      steps:['예비군 홈페이지·앱에 훈련일정 공시','신청 개시 여부 확인']},
+    {d:-23, name:'인터넷 신청 마감', desc:'미신청자 결산 — 신청일포함 23일전까지 완료', law:'훈령 제10조⑤2가', cls:'gold', owner:'나',
+      steps:['미신청자 명단 확인','미신청자 결산 처리']},
+    {d:-22, name:'모바일 전자고지 시작', desc:'고지일포함 22일전부터 모바일 전자고지 실시', law:'훈령 제10조⑥1', cls:'orange', owner:'나',
+      steps:['대상자 모바일 전자고지 발송','수신 여부 확인']},
+    {d:-16, name:'모바일 전자고지 마감', desc:'고지일포함 16일전까지 완료 — 미수신자 재통지 준비', law:'훈령 제10조⑥2', cls:'orange', owner:'나',
+      steps:['미수신자 명단 확인','재통지 대상 정리']},
+    {d:-15, name:'이메일·우편·방문·FAX 발송 시작', desc:'전달일포함 15일전부터 소집통지서 발송 가능', law:'훈령 제10조⑦2다', cls:'red', owner:'나',
+      steps:['소집통지서 이메일 발송','우편·방문·FAX 발송 대상자 확인 후 발송']},
+    {d:-8,  name:'소집통지서 전달 완료 마감 ★', desc:'전달일 미포함 7일전까지 교부 완료 필수', law:'훈령 제10조⑦5, 예비군법 제6조의2', cls:'red', owner:'나',
+      steps:['전자문서발송결과(미열람자) 확인','미열람자 우편 소집통지서 발송','3차 대상자 중 미수령자 인편 방문통보','미교부사유서 작성']},
+    {d:-4,  name:'사고자 입력 (D-4)', desc:'연기·출국 등 사고자 국방동원정보체계 입력', law:'훈령 제10조⑤', cls:'orange', owner:'나',
+      steps:['연기·출국 등 사고자 명단 확인','국방동원정보체계 사고자 입력']},
+    {d:-2,  name:'전국단위·휴일훈련 신청 마감', desc:'신청일 미포함 3일전까지', law:'훈령 제10조⑤5', cls:'blue', owner:'나',
+      steps:['전국단위·휴일훈련 신청자 확인','신청 마감 처리']},
+    {d:-1,  name:'훈련 전날 최종 안내', desc:'참석자 최종 문자·전화 안내 발송', law:'훈령 제10조', cls:'green', owner:'나',
+      steps:['참석자 명단 최종 확인','문자·전화로 최종 안내 발송']},
+    {d:0,   name:'훈련일 (D-day)', desc:'훈련 실시 — 당일 사고자 입력·결과 처리 준비', law:'훈령 제18조', cls:'gold', owner:'나',
+      steps:['출근·참석 인원 확인','불참자 사유 확인','훈련 진행상황 점검']},
+    {d:1,   name:'훈련 결과 처리 (D+1)', desc:'결과 국동체 확인 + 미참자 차수처리 + 고발 검토', law:'훈령 제18조②', cls:'green', owner:'나',
+      steps:['훈련 결과 국동체 확인·입력','미참자 차수처리','고발 대상 여부 검토']},
   ].map((s,i)=>({ id:'dd_seed_'+i, ...s }));
 }
 
@@ -686,13 +700,24 @@ function App() {
   const [ddTrains, setDdTrains] = useState(loadArr(K.DD));
   const [ddSteps, setDdSteps] = useState(()=>{
     const ex = loadArr('gdt_ddsteps');
-    if(ex.length) return ex;
-    const seeded = seedDdSteps(); save('gdt_ddsteps', seeded); return seeded;
+    if(!ex.length){ const seeded = seedDdSteps(); save('gdt_ddsteps', seeded); return seeded; }
+    // 기존에 저장된 절차 중 "수행절차(steps)" 필드가 아직 없는 기본 시드 항목엔 최신 기본 절차를 1회 보강 (사용자가 직접 추가한 절차는 안 건드림)
+    const defaultSteps = {}; seedDdSteps().forEach(s=>{ defaultSteps[s.id] = s.steps; });
+    let changed = false;
+    const merged = ex.map(s=>{
+      if((!s.steps || !s.steps.length) && defaultSteps[s.id] && defaultSteps[s.id].length){
+        changed = true;
+        return {...s, steps:defaultSteps[s.id]};
+      }
+      return s;
+    });
+    if(changed) save('gdt_ddsteps', merged);
+    return merged;
   });
   const saveDdSteps = (arr) => { setDdSteps(arr); save('gdt_ddsteps', arr); };
   const [showDdStepModal, setShowDdStepModal] = useState(false);
   const [ddStepEditId, setDdStepEditId] = useState(null);
-  const emptyDdStep = {d:0, name:'', desc:'', law:'', cls:'blue', owner:'나'};
+  const emptyDdStep = {d:0, name:'', desc:'', law:'', cls:'blue', owner:'나', steps:[]};
   const [ddStepForm, setDdStepForm] = useState(emptyDdStep);
   function openDdStep(id=null){
     setDdStepEditId(id);
@@ -1340,7 +1365,8 @@ function App() {
         if(stepKey===key) {
           const dLabel = step.d===0?'D-day':step.d>0?`D+${step.d}`:`D${step.d}`;
           const lawPart = step.law && !GENERIC_LAW.has(step.law) ? ` · ${step.law}` : '';
-          tasks.push({ text:`[${dLabel}·${step.owner||'나'}담당] ${step.name}`, cls: step.cls||'blue', law:`${label}${lawPart}` });
+          tasks.push({ text:`[${dLabel}·${step.owner||'나'}담당] ${step.name}`, cls: step.cls||'blue', law:`${label}${lawPart}`,
+            checkKey:`dd_${train.trainDate}_${step.id}`, steps: step.steps||[], howto:step.desc||'' });
         }
       }
     }
@@ -1513,7 +1539,11 @@ function App() {
       return isNA ? '해당없음' : (done ? '완료' : '미완료');
     }
     const ddToday = getDdayTasksForDate(y,m,d); // 오늘 해당하는 훈련계획(D-day) 단계
-    const ddTodayText = ddToday.length ? ddToday.map(x=>`${x.text} (${x.law})`).join(' / ') : '해당없음';
+    const ddTodayText = ddToday.length ? ddToday.map(x=>{
+      const hasSteps = x.steps && x.steps.length;
+      const done = hasSteps ? x.steps.every((_,si)=>checks[x.checkKey+'__s'+si]) : !!checks[x.checkKey];
+      return `${x.text} (${x.law}) — ${done?'완료':'미완료'}`;
+    }).join(' / ') : '해당없음';
     let txt = `[기동대장 일일업무일지] ${y}.${String(m+1).padStart(2,'0')}.${String(d).padStart(2,'0')}(${dows[new Date(y,m,d).getDay()]})\n`;
     txt += `${'─'.repeat(30)}\n`;
     if(!isWorkday(y,m,d)){
@@ -2034,18 +2064,21 @@ function App() {
                       {/* PC만 태그 표시 (모바일은 점 개수만) — 달력 칸 크기는 항상 고정, 절대 확장 안 됨 */}
                       {!isMobile && (
                         <div style={{flex:1,minWidth:0,padding:'0 2px 4px',display:'flex',flexDirection:'column',gap:1,overflow:'hidden'}}>
-                          {tasks.slice(0, maxShow).map((t,j)=>(
+                          {tasks.slice(0, maxShow).map((t,j)=>{
+                            const gtkey = t.checkKey || (key+'_'+t.text);
+                            return (
                             <div key={j}
-                              onClick={(e)=>{e.stopPropagation(); if(moveMode){ tryMoveTask(t,key); return; } toggleCheck(key+'_'+t.text);}}
+                              onClick={(e)=>{e.stopPropagation(); if(moveMode){ tryMoveTask(t,key); return; } toggleCheck(gtkey);}}
                               style={{fontSize:9, lineHeight:1.4, padding:'1px 3px', minWidth:0, maxWidth:'100%', boxSizing:'border-box',
                                 borderLeft:`2px solid ${clsColor[t.cls]||C.g7}`, background:tagBg[t.cls]||tagBg.green,
                                 color:clsColor[t.cls]||C.g8, overflow:'hidden', textOverflow:'ellipsis',
                                 whiteSpace:isMobile?'normal':'nowrap', cursor:'pointer',
-                                opacity:checks[key+'_'+t.text]?.35:1, textDecoration:checks[key+'_'+t.text]?'line-through':'none'}}>
+                                opacity:checks[gtkey]?.35:1, textDecoration:checks[gtkey]?'line-through':'none'}}>
                               {t.text}
                               {isMobile && <span style={{fontSize:9,color:C.txt3,marginLeft:6,fontFamily:fontMono}}>{t.law}</span>}
                             </div>
-                          ))}
+                            );
+                          })}
                           {!isMobile && tasks.length>4 && <div style={{fontSize:8,color:C.txt3,fontFamily:fontMono,padding:'1px 3px',textAlign:'right'}}>+{tasks.length-4}개</div>}
                         </div>
                       )}
@@ -2688,10 +2721,15 @@ function App() {
                 const statusColor=isPast?C.g8:isTd?C.gold2:isSoon?C.red2:C.txt3;
                 const clsColorMap={purple:C.purple2,blue:C.blue3,gold:C.gold2,orange:C.orange2,red:C.red2,green:C.g8};
                 const stepColor=clsColorMap[step.cls]||C.txt2;
+                const ddTrainKey = viewedTrain?viewedTrain.trainDate:(ddEditDate||ddDate);
+                const hasSteps = step.steps && step.steps.length>0;
+                const dkey = `dd_${ddTrainKey}_${step.id}`;
+                const hkey = `ddstep_${ddTrainKey}_${step.id}`;
+                const stepsDoneCount = hasSteps ? step.steps.filter((_,si)=>checks[dkey+'__s'+si]).length : 0;
+                const allDone = hasSteps ? stepsDoneCount===step.steps.length : !!checks[dkey];
                 return (
-                  <div key={i} style={{display:'flex',alignItems:'stretch',gap:0,
-                    border:`${isTd?2:1}px solid ${isTd?C.gold:isSoon&&!isPast?C.red2:C.g4}`,
-                    background:C.bg1,marginBottom:2,opacity:isPast?.5:1}}>
+                  <div key={i} style={{border:`${isTd?2:1}px solid ${isTd?C.gold:isSoon&&!isPast?C.red2:C.g4}`,background:C.bg1,marginBottom:2,opacity:isPast?.5:1}}>
+                  <div style={{display:'flex',alignItems:'stretch',gap:0}}>
                     <div style={{background:C.bg2,padding:isMobile?'6px 8px':'6px 10px',minWidth:isMobile?70:90,textAlign:'center',
                       display:'flex',flexDirection:'column',justifyContent:'center',borderRight:`1px solid ${C.g4}`}}>
                       <div style={{fontFamily:fontMono,fontSize:11,fontWeight:700,color:stepColor}}>
@@ -2701,10 +2739,15 @@ function App() {
                         {step.date}
                       </div>
                     </div>
-                    <div style={{padding:isMobile?'6px 9px':'7px 11px',flex:1}}>
+                    <div onClick={()=>hasSteps?toggleHowto(hkey):saveChecks({...checks,[dkey]:!checks[dkey]})} style={{padding:isMobile?'6px 9px':'7px 11px',flex:1,cursor:'pointer'}}>
                       <div style={{fontSize:isMobile?11:12,fontWeight:700,color:isTd?C.gold2:stepColor,marginBottom:2,display:'flex',alignItems:'center',gap:6}}>
+                        <div style={{width:14,height:14,border:`1.5px solid ${allDone?C.g7:C.g5}`,background:allDone?C.g7:'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                          {allDone&&<span style={{fontSize:9,color:C.bg,fontWeight:900}}>✓</span>}
+                        </div>
                         {step.name}
                         <span style={{fontSize:8,fontFamily:fontMono,padding:'1px 5px',border:`1px solid ${clsColor[OWNER_COLOR[step.owner]]||C.g5}`,color:clsColor[OWNER_COLOR[step.owner]]||C.txt3}}>{step.owner||'나'}</span>
+                        {hasSteps && <span style={{fontSize:9,color:C.txt3,fontFamily:fontMono}}>({stepsDoneCount}/{step.steps.length})</span>}
+                        {hasSteps && <span style={{color:C.gold2,fontSize:11,marginLeft:'auto'}}>{expandedHowto[hkey]?'▲':'▶'}</span>}
                       </div>
                       {!isMobile && <div style={{fontSize:10,color:C.txt2,lineHeight:1.4}}>{step.desc}</div>}
                       {step.law && !GENERIC_LAW.has(step.law) && <div style={{fontSize:8,color:C.txt3,fontFamily:fontMono,marginTop:2}}>📖 {step.law}</div>}
@@ -2715,6 +2758,25 @@ function App() {
                       color:statusColor,border:`1px solid ${statusColor}`}}>
                       {statusLabel}
                     </span>
+                  </div>
+                  {hasSteps && expandedHowto[hkey] && (
+                    <div style={{margin:'0 10px 8px',background:C.bg2,border:`1px solid ${C.g4}`,borderLeft:`3px solid ${C.gold2}`,padding:'8px 10px'}}>
+                      <ul style={{listStyle:'none',margin:0,padding:0}}>
+                        {step.steps.map((st,si)=>{
+                          const sk = dkey+'__s'+si;
+                          const sdone = checks[sk];
+                          return (
+                            <li key={si} onClick={()=>saveChecks({...checks,[sk]:!checks[sk]})} style={{display:'flex',alignItems:'flex-start',gap:7,padding:'4px 0',cursor:'pointer'}}>
+                              <div style={{width:13,height:13,border:`1.5px solid ${sdone?C.g7:C.g5}`,background:sdone?C.g7:'transparent',flexShrink:0,marginTop:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                {sdone&&<span style={{fontSize:8,color:C.bg,fontWeight:900}}>✓</span>}
+                              </div>
+                              <span style={{fontSize:11,color:sdone?C.txt3:C.txt2,textDecoration:sdone?'line-through':'none',lineHeight:1.5}}>{si+1}. {st}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
                   </div>
                 );
               })}
@@ -3468,6 +3530,23 @@ function App() {
               <div style={{display:'flex',flexDirection:'column',gap:3}}>
                 <label style={{fontSize:9,fontWeight:700,color:C.txt3,letterSpacing:2,fontFamily:fontMono}}>설명</label>
                 <textarea value={ddStepForm.desc} onChange={e=>setDdStepForm(f=>({...f,desc:e.target.value}))} style={{width:'100%',background:C.bg2,border:`1px solid ${C.g4}`,color:C.txt,fontFamily:fontMono,fontSize:11,padding:8,resize:'vertical',minHeight:50,outline:'none',lineHeight:1.6}}/>
+              </div>
+              <div style={{borderTop:`1px solid ${C.g4}`,paddingTop:8,background:'rgba(200,160,64,.05)'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                  <label style={{fontSize:9,fontWeight:700,color:C.gold,letterSpacing:2,fontFamily:fontMono}}>✅ 수행절차</label>
+                  <button onClick={()=>setDdStepForm(f=>({...f,steps:[...(f.steps||[]),'']}))} style={{...s.btn(true),fontSize:9,padding:'4px 8px'}}>+ 단계 추가</button>
+                </div>
+                {(ddStepForm.steps||[]).length===0 && <div style={{fontSize:10,color:C.txt3,marginBottom:4}}>등록된 절차 없음 — 이 경우 클릭 한 번으로 완료 처리됩니다</div>}
+                {(ddStepForm.steps||[]).map((st,si)=>(
+                  <div key={si} style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
+                    <span style={{fontSize:10,color:C.gold2,fontFamily:fontMono,minWidth:16}}>{si+1}.</span>
+                    <input value={st} onChange={e=>{
+                        const nv=e.target.value;
+                        setDdStepForm(f=>({...f,steps:f.steps.map((x,xi)=>xi===si?nv:x)}));
+                      }} placeholder="예: 소집통지서 이메일 발송" style={{...s.input,flex:1,padding:'6px 8px'}}/>
+                    <button onClick={()=>setDdStepForm(f=>({...f,steps:f.steps.filter((_,xi)=>xi!==si)}))} style={{background:'transparent',border:'none',color:C.txt3,fontSize:14,cursor:'pointer'}}>✕</button>
+                  </div>
+                ))}
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:9}}>
                 <div style={{display:'flex',flexDirection:'column',gap:3}}>
