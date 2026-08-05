@@ -455,7 +455,7 @@ function getMasterTasksForDate(y,m,d, masterTasks){
       if(occ.key===key){
         if(movedTo){
           // 이 회차는 다른 날짜로 이동됨 — 원래 날짜엔 이동 안내만 표시 (체크 불가)
-          out.push({ text:`${t.text} → ${movedTo} 로 이동됨`, cls:t.cls||'green', law:'', masterId:t.id, preview:true, period:t.period });
+          out.push({ text:`${t.text} → ${movedTo} 로 이동됨`, cls:t.cls||'green', law:'', masterId:t.id, preview:true, movedOut:true, period:t.period });
         } else {
           out.push({ text:t.text, cls:t.cls||'green', law:t.law||'', masterId:t.id, preview:false, howto:t.howto||'', steps:t.steps||[], period:t.period });
         }
@@ -628,8 +628,8 @@ function App() {
   const [curY, setCurY] = useState(today.getFullYear());
   const [curM, setCurM] = useState(today.getMonth());
   const [selDate, setSelDate] = useState(null); // 달력 그리드는 안 건드리고, 별도 단일패널에 표시
-  const [moveMode, setMoveMode] = useState(false); // 일정수정 모드: 켜져있으면 업무 클릭 시 체크 대신 "이동" 선택
-  const [movingTask, setMovingTask] = useState(null); // {masterId, origKey, text} 이동 대기 중인 업무
+  const [moveMode, setMoveMode] = useState(false); // 일정수정 모드: 켜져있으면 업무 클릭 시 체크 대신 "이동" 팝업이 뜸
+  const [moveTarget, setMoveTarget] = useState(null); // {masterId, origKey, text, date} 이동 팝업에 표시 중인 업무
   const [checks, setChecks] = useState(load(K.C));
   const [memos, setMemos] = useState(load(K.M));
   const [custom, setCustom] = useState(load(K.X));
@@ -1393,6 +1393,18 @@ function App() {
   }
   function delMT(id) { if(!confirm('이 업무를 삭제하시겠습니까?')) return; saveMasterTasks(masterTasks.filter(t=>t.id!==id)); }
   function toggleMTActive(id) { saveMasterTasks(masterTasks.map(t=>t.id===id?{...t,active:!t.active}:t)); }
+  function tryMoveTask(t, dateKey){
+    if(!t.masterId || t.period==='daily' || t.period==='unplanned'){ alert('이 업무는 이동할 수 없습니다 (일일업무·미계획업무는 이동 대상이 아닙니다).'); return; }
+    setMoveTarget({masterId:t.masterId, origKey:dateKey, text:t.text, date:dateKey});
+  }
+  function confirmMoveTask(){
+    if(!moveTarget) return;
+    if(!moveTarget.date){ alert('날짜를 선택해 주세요.'); return; }
+    if(moveTarget.date===moveTarget.origKey){ setMoveTarget(null); return; }
+    const nmt = masterTasks.map(t=> t.id===moveTarget.masterId ? {...t, moves:{...(t.moves||{}), [moveTarget.origKey]:moveTarget.date}} : t);
+    saveMasterTasks(nmt);
+    setMoveTarget(null);
+  }
   const periodLabel = {daily:'매일',weekly:'매주',monthly:'매월',quarterly:'분기말',halfyear:'반기',yearly:'매년',unplanned:'미계획(직접지정)'};
   function mtScheduleText(t){
     if(t.period==='daily') return `매일${t.section?' · '+t.section:''}`;
@@ -1539,8 +1551,9 @@ function App() {
   const selTasks = selDate ? (() => {
     const [y,m,d]=selDate.split('-').map(Number);
     const base = getTasks(y,m-1,d,custom); // 사용자 등록 업무(업무추가)
-    const master = getMasterTasksForDate(y,m-1,d,masterTasks).filter(t=>!t.preview); // 순기+미계획 지정된 업무
-    const preview = getMasterTasksForDate(y,m-1,d,masterTasks).filter(t=>t.preview); // 사전준비 알림(등록된 D-n)만
+    const masterAll = getMasterTasksForDate(y,m-1,d,masterTasks).filter(t=>moveMode||!t.movedOut);
+    const master = masterAll.filter(t=>!t.preview); // 순기+미계획 지정된 업무
+    const preview = masterAll.filter(t=>t.preview); // 사전준비 알림 + (수정모드일 때만) 이동됨 안내
     const ddTasks = getDdayTasksForDate(y,m-1,d);
     return [...selDailyFlat, ...master, ...base, ...ddTasks, ...preview];
   })() : [];
@@ -1863,16 +1876,14 @@ function App() {
             <div style={{minWidth:0, overflow:'hidden', background:C.bg1, border:`1px solid ${C.g4}`, padding:isMobile?8:12}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,paddingBottom:6,borderBottom:`1px solid ${C.g4}`}}>
                 <div style={{fontSize:10,fontWeight:700,color:C.gold,fontFamily:fontMono,letterSpacing:2}}>📅 월력</div>
-                <button onClick={()=>{setMoveMode(v=>!v); setMovingTask(null);}}
+                <button onClick={()=>{setMoveMode(v=>!v); setMoveTarget(null);}}
                   style={{background:moveMode?C.gold:'transparent',border:`1px solid ${moveMode?C.gold:C.g5}`,color:moveMode?C.bg:C.txt3,padding:'3px 8px',fontSize:9,fontWeight:700,cursor:'pointer',fontFamily:fontMono}}>
                   {moveMode?'✅ 일정수정 종료':'🔧 일정수정'}
                 </button>
               </div>
               {moveMode && (
                 <div style={{fontSize:10,color:C.gold2,background:'rgba(200,160,64,.12)',border:`1px solid ${C.gold}`,padding:'6px 8px',marginBottom:8,lineHeight:1.5}}>
-                  {movingTask
-                    ? `"${movingTask.text}" 이동 중 — 옮길 날짜의 칸을 클릭하세요 (같은 칸을 다시 클릭하면 취소)`
-                    : '옮길 업무를 업무표시 목록에서 클릭하세요 (주간·월간·분기·반기·연간 업무만 이동 가능)'}
+                  옮길 업무를 클릭하면 날짜 입력창이 뜹니다 (주간·월간·분기·반기·연간 업무만 이동 가능)
                 </div>
               )}
               {/* 요일 헤더 */}
@@ -1893,25 +1904,15 @@ function App() {
                   const isSel=key===selDate;
                   const baseTasks=other?[]:getTasks(y,m,d,custom);
                   const ddTasks=other?[]:getDdayTasksForDate(y,m,d);
-                  const masterHere=other?[]:getMasterTasksForDate(y,m,d,masterTasks);
+                  const masterHereRaw=other?[]:getMasterTasksForDate(y,m,d,masterTasks);
+                  const masterHere=moveMode?masterHereRaw:masterHereRaw.filter(t=>!t.movedOut);
                   const masterDue=masterHere.filter(t=>!t.preview);
                   const masterPreview=masterHere.filter(t=>t.preview);
                   const tasks=[...masterDue,...baseTasks,...ddTasks,...masterPreview];
                   const maxShow = isMobile?1:4;
                   return (
                     <div key={i}
-                      onClick={()=>{
-                        if(other) return;
-                        if(moveMode && movingTask){
-                          if(key===movingTask.origKey){ setMovingTask(null); return; }
-                          if(!confirm(`"${movingTask.text}" 업무를 ${movingTask.origKey} → ${key} 로 옮길까요?`)) return;
-                          const nmt = masterTasks.map(t=> t.id===movingTask.masterId ? {...t, moves:{...(t.moves||{}), [movingTask.origKey]:key}} : t);
-                          saveMasterTasks(nmt);
-                          setMovingTask(null);
-                          return;
-                        }
-                        setSelDate(k=>k===key?null:key);
-                      }}
+                      onClick={()=>{ if(other) return; setSelDate(k=>k===key?null:key); }}
                       style={{background:C.bg1, border:`${(isTd||isSel)?2:1}px solid ${isTd?C.gold:isSel?C.g7:C.g4}`,
                         minHeight:isMobile?52:90, minWidth:0, overflow:'hidden', position:'relative', display:'flex', flexDirection:'column',
                         cursor:other?'default':'pointer', opacity:other?.5:1}}>
@@ -1928,7 +1929,7 @@ function App() {
                         <div style={{flex:1,minWidth:0,padding:'0 2px 4px',display:'flex',flexDirection:'column',gap:1,overflow:'hidden'}}>
                           {tasks.slice(0, maxShow).map((t,j)=>(
                             <div key={j}
-                              onClick={(e)=>{e.stopPropagation(); if(moveMode) return; toggleCheck(key+'_'+t.text);}}
+                              onClick={(e)=>{e.stopPropagation(); if(moveMode){ tryMoveTask(t,key); return; } toggleCheck(key+'_'+t.text);}}
                               style={{fontSize:9, lineHeight:1.4, padding:'1px 3px', minWidth:0, maxWidth:'100%', boxSizing:'border-box',
                                 borderLeft:`2px solid ${clsColor[t.cls]||C.g7}`, background:tagBg[t.cls]||tagBg.green,
                                 color:clsColor[t.cls]||C.g8, overflow:'hidden', textOverflow:'ellipsis',
@@ -1989,17 +1990,13 @@ function App() {
                           const tag = PERIOD_TAG[t.period];
                           const lawText = (t.law && !GENERIC_LAW.has(t.law)) ? t.law : '';
                           const subtitle = [lawText, (hasSteps && !isNA) ? `수행절차 (${stepsDoneCount}/${t.steps.length})` : ''].filter(Boolean).join(' · ');
-                          const isMoving = moveMode && movingTask && t.masterId && movingTask.masterId===t.masterId && movingTask.origKey===selDate;
+                          const isMoving = moveMode && moveTarget && t.masterId && moveTarget.masterId===t.masterId && moveTarget.origKey===selDate;
                           return (
                             <li key={i} style={{padding:isMobile?'8px 0':'5px 0', borderBottom:`1px solid rgba(42,69,29,.2)`, opacity:isPrev?.55:1,
                               background:isMoving?'rgba(200,160,64,.16)':'transparent', outline:isMoving?`2px solid ${C.gold}`:'none'}}>
                               <div onClick={()=>{
                                 if(isPrev) return;
-                                if(moveMode){
-                                  if(!t.masterId || t.period==='daily' || t.period==='unplanned'){ alert('이 업무는 이동할 수 없습니다 (일일업무·미계획업무는 이동 대상이 아닙니다).'); return; }
-                                  setMovingTask(mv => (mv && mv.masterId===t.masterId && mv.origKey===selDate) ? null : {masterId:t.masterId, origKey:selDate, text:t.text});
-                                  return;
-                                }
+                                if(moveMode){ tryMoveTask(t, selDate); return; }
                                 hasSteps?toggleHowto(hkey):toggleCheck(tkey);
                               }} style={{display:'flex',alignItems:'flex-start',gap:8,cursor:isPrev?'default':'pointer'}}>
                                 {!isPrev && <div style={{width:16,height:16,border:`1.5px solid ${done?C.g7:C.g5}`,
@@ -2688,16 +2685,18 @@ function App() {
                     <button onClick={()=>moveMT(t.id,-1)} disabled={isFirst} style={{background:'transparent',border:`1px solid ${C.g5}`,color:isFirst?C.g5:C.txt2,padding:'1px 6px',fontSize:9,cursor:isFirst?'default':'pointer'}}>▲</button>
                     <button onClick={()=>moveMT(t.id,1)} disabled={isLast} style={{background:'transparent',border:`1px solid ${C.g5}`,color:isLast?C.g5:C.txt2,padding:'1px 6px',fontSize:9,cursor:isLast?'default':'pointer'}}>▼</button>
                   </div>
-                  <div style={{flex:1,minWidth:160}}>
+                  <div style={{minWidth:160}}>
                     <div style={{fontSize:13,fontWeight:700,color:C.tan}}>
                       {tag && <span style={{fontSize:8,color:clsColor[PERIOD_COLOR[t.period]]||C.txt3,fontFamily:fontMono,marginRight:4}}>[{tag}]</span>}
                       {t.text}{isUnplanned && <span style={{marginLeft:6,fontSize:9,color:C.red3,fontFamily:fontMono}}>[미계획]</span>}
                     </div>
                     <div style={{fontSize:9,color:C.txt3,fontFamily:fontMono,marginTop:2}}>{mtScheduleText(t)}{t.law && ` · ${t.law}`}</div>
                   </div>
-                  <button onClick={()=>toggleMTActive(t.id)} style={{...s.btn(false),fontSize:9,padding:'5px 8px'}}>{t.active?'사용중':'중지됨'}</button>
-                  <button onClick={()=>openMT(t.id)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt3,padding:'5px 8px',fontSize:11,cursor:'pointer'}}>✏</button>
-                  <button onClick={()=>delMT(t.id)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt3,padding:'5px 8px',fontSize:11,cursor:'pointer'}}>✕</button>
+                  <div style={{display:'flex',gap:6}}>
+                    <button onClick={()=>toggleMTActive(t.id)} style={{...s.btn(false),fontSize:9,padding:'5px 8px'}}>{t.active?'사용중':'중지됨'}</button>
+                    <button onClick={()=>openMT(t.id)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt2,padding:'5px 10px',fontSize:11,cursor:'pointer',fontWeight:700}}>수정</button>
+                    <button onClick={()=>delMT(t.id)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt3,padding:'5px 8px',fontSize:11,cursor:'pointer'}}>✕</button>
+                  </div>
                 </div>
               );
             })}
@@ -3380,6 +3379,23 @@ function App() {
             <div style={{display:'flex',gap:6}}>
               <button onClick={()=>setShowUnplannedModal(false)} style={{...s.btn(false),flex:1}}>나중에</button>
               <button onClick={()=>{setShowUnplannedModal(false);setMode('master');}} style={{...s.btn(true),flex:1}}>지금 계획하기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════ 업무 일정 이동 팝업 ══════════ */}
+      {moveTarget && (
+        <div onClick={()=>setMoveTarget(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:530,display:'flex',alignItems:isMobile?'flex-end':'center',justifyContent:'center'}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.bg1,border:`2px solid ${C.gold}`,width:isMobile?'100%':360,maxWidth:'96vw',padding:18}}>
+            <div style={{fontSize:13,fontWeight:900,color:C.gold,marginBottom:4}}>📅 일정 이동</div>
+            <div style={{fontSize:13,color:C.tan,fontWeight:700,margin:'8px 0 2px'}}>{moveTarget.text}</div>
+            <div style={{fontSize:10,color:C.txt3,fontFamily:fontMono,marginBottom:12}}>현재 날짜: {moveTarget.origKey}</div>
+            <div style={{fontSize:10,color:C.txt3,marginBottom:6}}>옮길 날짜</div>
+            <input type="date" value={moveTarget.date} onChange={e=>setMoveTarget(mv=>({...mv,date:e.target.value}))} style={{...s.input,width:'100%',boxSizing:'border-box',marginBottom:14}}/>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>setMoveTarget(null)} style={{...s.btn(false),flex:1}}>취소</button>
+              <button onClick={confirmMoveTask} style={{...s.btn(true),flex:1}}>이동</button>
             </div>
           </div>
         </div>
