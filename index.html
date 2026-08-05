@@ -173,8 +173,11 @@ function computeOccurrenceDates(task, y, m){
       }
     }
   } else if(task.period==='monthly'){
-    const dd = task.day==='last' ? last : Math.min(task.day,last);
-    res.push({y,m,d:dd});
+    const daysList = (task.days && task.days.length) ? task.days : [task.day];
+    for(const dv of daysList){
+      const dd = dv==='last' ? last : Math.min(dv,last);
+      res.push({y,m,d:dd});
+    }
   } else if(task.period==='quarterly'){
     if([2,5,8,11].includes(m)){ const dd = task.day==='last'?last:Math.min(task.day,last); res.push({y,m,d:dd}); }
   } else if(task.period==='halfyear'){
@@ -410,9 +413,21 @@ function getSortedMasterTasks(masterTasks){
 function findDuplicateMTGroups(masterTasks){
   const map = new Map();
   for(const t of (masterTasks||[])){
-    const sig = [t.text, t.period, t.day??'', t.dow??'', t.month??'', (t.nth||[]).join(','), (t.months||[]).join(','), t.assignedDate??''].join('|');
+    const sig = [t.text, t.period, t.day??'', (t.days||[]).join(','), t.dow??'', t.month??'', (t.nth||[]).join(','), (t.months||[]).join(','), t.assignedDate??''].join('|');
     if(!map.has(sig)) map.set(sig, []);
     map.get(sig).push(t);
+  }
+  return [...map.values()].filter(g=>g.length>1);
+}
+// 제목·주기는 같지만 일자/요일 등 세부 일정이 다른 항목 그룹 — 완전 중복은 아니지만 하나로 합칠 수 있는지 검토해볼 대상
+function findSimilarTitleMTGroups(masterTasks){
+  const exact = new Set(findDuplicateMTGroups(masterTasks).flat().map(t=>t.id));
+  const map = new Map();
+  for(const t of (masterTasks||[])){
+    if(exact.has(t.id)) continue; // 완전 중복은 위쪽 목록에서 이미 다룸
+    const key = t.text+'|'+t.period;
+    if(!map.has(key)) map.set(key, []);
+    map.get(key).push(t);
   }
   return [...map.values()].filter(g=>g.length>1);
 }
@@ -1456,7 +1471,7 @@ function App() {
     if(t.period==='daily') return `매일${t.section?' · '+t.section:''}`;
     if(t.period==='weekly') return `${periodLabel.weekly} ${['일','월','화','수','목','금','토'][t.dow]}요일`;
     if(t.period==='nthweek') return `매월 ${(t.nth||[]).map(n=>WEEK_ORD[n]||n).join('·')}주 ${DOW_NAME[t.dow]}요일`;
-    if(t.period==='monthly') return `${periodLabel.monthly} ${t.day==='last'?'말일':t.day+'일'}`;
+    if(t.period==='monthly') { const dl=(t.days&&t.days.length)?t.days:[t.day]; return `${periodLabel.monthly} ${dl.map(dv=>dv==='last'?'말일':dv+'일').join('·')}`; }
     if(t.period==='quarterly') return `${periodLabel.quarterly}`;
     if(t.period==='halfyear') return `${(t.months||[]).join('·')}월 ${t.day==='last'?'말일':t.day+'일'}`;
     if(t.period==='yearly') return `${t.month}월 ${t.day==='last'?'말일':t.day+'일'}`;
@@ -3086,11 +3101,11 @@ function App() {
               )}
               {mtForm.period==='monthly' && (
                 <div style={{display:'flex',flexDirection:'column',gap:3}}>
-                  <label style={{fontSize:9,fontWeight:700,color:C.txt3,letterSpacing:2,fontFamily:fontMono}}>일자</label>
-                  <select value={mtForm.day} onChange={e=>setMtForm(f=>({...f,day:e.target.value==='last'?'last':parseInt(e.target.value)}))} style={s.input}>
-                    {[...Array(31)].map((_,i)=><option key={i} value={i+1}>{i+1}일</option>)}
-                    <option value="last">말일</option>
-                  </select>
+                  <label style={{fontSize:9,fontWeight:700,color:C.txt3,letterSpacing:2,fontFamily:fontMono}}>일자 (여러 날짜는 쉼표로 구분, 말일은 last)</label>
+                  <input value={((mtForm.days&&mtForm.days.length)?mtForm.days:(mtForm.day!=null?[mtForm.day]:[])).join(',')}
+                    onChange={e=>setMtForm(f=>({...f, days: e.target.value.split(',').map(x=>x.trim()).filter(Boolean).map(x=>x==='last'?'last':parseInt(x)).filter(x=>x==='last'||(!isNaN(x)&&x>=1&&x<=31))}))}
+                    placeholder="예: 1,16 또는 15,last" style={s.input}/>
+                  <span style={{fontSize:9,color:C.txt3}}>예: "1,16" 입력 시 매월 1일과 16일 두 번 시행</span>
                 </div>
               )}
               {mtForm.period==='halfyear' && (
@@ -3458,6 +3473,7 @@ function App() {
       {/* ══════════ 중복 의심 업무 찾기 ══════════ */}
       {showDupCheck && (() => {
         const dupGroups = findDuplicateMTGroups(masterTasks);
+        const simGroups = findSimilarTitleMTGroups(masterTasks);
         return (
           <div onClick={()=>setShowDupCheck(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:520,display:'flex',alignItems:isMobile?'flex-end':'center',justifyContent:'center'}}>
             <div onClick={e=>e.stopPropagation()} style={{background:C.bg1,border:`1px solid ${C.g4}`,borderTop:`3px solid ${C.gold}`,width:isMobile?'100%':460,maxWidth:'96vw',maxHeight:isMobile?'90vh':'85vh',overflowY:'auto'}}>
@@ -3466,26 +3482,47 @@ function App() {
                 <button onClick={()=>setShowDupCheck(false)} style={{background:'transparent',border:'none',color:C.txt3,fontSize:20,cursor:'pointer'}}>✕</button>
               </div>
               <div style={{padding:14}}>
-                {dupGroups.length===0
-                  ? <div style={{textAlign:'center',padding:24,color:C.txt3,fontSize:12}}>업무명·주기·요일/일자가 완전히 같은 중복 항목이 없습니다.</div>
+                {dupGroups.length===0 && simGroups.length===0
+                  ? <div style={{textAlign:'center',padding:24,color:C.txt3,fontSize:12}}>중복·유사 항목이 없습니다.</div>
                   : <>
-                      <div style={{fontSize:11,color:C.txt3,marginBottom:12,lineHeight:1.5}}>업무명·주기·요일/일자가 완전히 같은 항목들입니다. 남길 하나만 빼고 나머지를 지워주세요 (수행절차 내용이 서로 다를 수 있으니 확인 후 지워주세요).</div>
-                      {dupGroups.map((g,gi)=>(
-                        <div key={gi} style={{border:`1px solid ${C.g4}`,borderLeft:`4px solid ${C.red3}`,padding:'8px 10px',marginBottom:10}}>
-                          <div style={{fontSize:12,fontWeight:700,color:C.tan,marginBottom:6}}>{g[0].text} <span style={{fontSize:9,color:C.txt3,fontFamily:fontMono}}>({g.length}개 중복)</span></div>
-                          {g.map((t,ti)=>(
-                            <div key={t.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'5px 0',borderTop:ti>0?`1px solid rgba(0,0,0,.06)`:'none'}}>
-                              <div style={{fontSize:10,color:C.txt3,fontFamily:fontMono}}>
-                                {mtScheduleText(t)}{t.steps&&t.steps.length?` · 절차 ${t.steps.length}개`:''}{t.howto&&t.howto.trim()?' · 요령있음':''}
+                      {dupGroups.length>0 && <>
+                        <div style={{fontSize:11,fontWeight:700,color:C.red3,marginBottom:6}}>⛔ 완전 중복 (제목·주기·일정까지 동일)</div>
+                        <div style={{fontSize:10,color:C.txt3,marginBottom:10,lineHeight:1.5}}>남길 하나만 빼고 나머지를 지워주세요 (수행절차 내용이 서로 다를 수 있으니 확인 후 지워주세요).</div>
+                        {dupGroups.map((g,gi)=>(
+                          <div key={gi} style={{border:`1px solid ${C.g4}`,borderLeft:`4px solid ${C.red3}`,padding:'8px 10px',marginBottom:10}}>
+                            <div style={{fontSize:12,fontWeight:700,color:C.tan,marginBottom:6}}>{g[0].text} <span style={{fontSize:9,color:C.txt3,fontFamily:fontMono}}>({g.length}개 중복)</span></div>
+                            {g.map((t,ti)=>(
+                              <div key={t.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'5px 0',borderTop:ti>0?`1px solid rgba(0,0,0,.06)`:'none'}}>
+                                <div style={{fontSize:10,color:C.txt3,fontFamily:fontMono}}>
+                                  {mtScheduleText(t)}{t.steps&&t.steps.length?` · 절차 ${t.steps.length}개`:''}{t.howto&&t.howto.trim()?' · 요령있음':''}
+                                </div>
+                                <div style={{display:'flex',gap:6,flexShrink:0}}>
+                                  <button onClick={()=>{setShowDupCheck(false); openMT(t.id);}} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt2,padding:'4px 8px',fontSize:10,cursor:'pointer'}}>보기</button>
+                                  <button onClick={()=>delMT(t.id)} style={{background:'transparent',border:`1px solid ${C.red2}`,color:C.red2,padding:'4px 8px',fontSize:10,cursor:'pointer'}}>삭제</button>
+                                </div>
                               </div>
-                              <div style={{display:'flex',gap:6,flexShrink:0}}>
-                                <button onClick={()=>{setShowDupCheck(false); openMT(t.id);}} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt2,padding:'4px 8px',fontSize:10,cursor:'pointer'}}>보기</button>
-                                <button onClick={()=>delMT(t.id)} style={{background:'transparent',border:`1px solid ${C.red2}`,color:C.red2,padding:'4px 8px',fontSize:10,cursor:'pointer'}}>삭제</button>
+                            ))}
+                          </div>
+                        ))}
+                      </>}
+                      {simGroups.length>0 && <>
+                        <div style={{fontSize:11,fontWeight:700,color:C.gold2,marginBottom:6,marginTop:dupGroups.length>0?16:0}}>⚠ 제목·주기는 같지만 일정이 다른 업무</div>
+                        <div style={{fontSize:10,color:C.txt3,marginBottom:10,lineHeight:1.5}}>완전 중복은 아니지만, 같은 업무를 여러 날짜로 나눠 등록해두신 경우일 수 있습니다. 필요하면 하나로 합쳐서(일자를 쉼표로 여러 개 입력) 관리하시는 게 더 편합니다.</div>
+                        {simGroups.map((g,gi)=>(
+                          <div key={gi} style={{border:`1px solid ${C.g4}`,borderLeft:`4px solid ${C.gold2}`,padding:'8px 10px',marginBottom:10}}>
+                            <div style={{fontSize:12,fontWeight:700,color:C.tan,marginBottom:6}}>{g[0].text}</div>
+                            {g.map((t,ti)=>(
+                              <div key={t.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'5px 0',borderTop:ti>0?`1px solid rgba(0,0,0,.06)`:'none'}}>
+                                <div style={{fontSize:10,color:C.txt3,fontFamily:fontMono}}>{mtScheduleText(t)}</div>
+                                <div style={{display:'flex',gap:6,flexShrink:0}}>
+                                  <button onClick={()=>{setShowDupCheck(false); openMT(t.id);}} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt2,padding:'4px 8px',fontSize:10,cursor:'pointer'}}>보기</button>
+                                  <button onClick={()=>delMT(t.id)} style={{background:'transparent',border:`1px solid ${C.red2}`,color:C.red2,padding:'4px 8px',fontSize:10,cursor:'pointer'}}>삭제</button>
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
+                            ))}
+                          </div>
+                        ))}
+                      </>}
                     </>
                 }
               </div>
