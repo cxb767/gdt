@@ -2729,35 +2729,39 @@ function App() {
                 const START=-32, END=2;
                 const cols=[]; for(let o=START;o<=END;o++){ const cd=new Date(D0.getTime()); cd.setDate(D0.getDate()+o); cols.push({o,cd}); }
                 const bands=[
-                  {label:'인터넷 신청', from:-30, to:-23, color:C.blue3, bg:'rgba(26,95,180,.22)'},
-                  {label:'모바일 전자고지', from:-22, to:-16, color:C.orange2, bg:'rgba(221,146,42,.22)'},
-                  {label:'이메일·우편·방문·FAX', from:-15, to:-8, color:C.red2, bg:'rgba(217,69,58,.22)'},
+                  {label:'인터넷 신청', from:-30, to:-23, color:C.blue3, bg:'rgba(26,95,180,.22)', caption:'(8일간) (신청일포함)30일전~(신청일포함)23일전'},
+                  {label:'모바일 전자고지', from:-22, to:-16, color:C.orange2, bg:'rgba(221,146,42,.22)', caption:'(7일간) (고지일포함)22일전~(고지일포함)16일전'},
+                  {label:'이메일·우편·방문·FAX', from:-15, to:-8, color:C.red2, bg:'rgba(217,69,58,.22)', caption:'(8일간) (전달일포함)15일전~(전달일미포함)7일전'},
                 ];
                 const dows=['일','월','화','수','목','금','토'];
-                const cw=isMobile?22:26;
+                const cw=isMobile?30:36;
                 return (
                   <div style={{overflowX:'auto',border:`1px solid ${C.g4}`,marginBottom:12,background:C.bg1}}>
                     <div style={{display:'inline-block',minWidth:'100%'}}>
                       {/* 날짜 헤더 */}
                       <div style={{display:'flex'}}>
-                        <div style={{width:isMobile?92:130,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2}}/>
+                        <div style={{width:isMobile?110:170,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2}}/>
                         {cols.map(c=>(
                           <div key={c.o} style={{width:cw,flexShrink:0,textAlign:'center',borderRight:`1px solid rgba(0,0,0,.05)`,borderBottom:`1px solid ${C.g4}`,
-                            background:c.o===0?'rgba(200,160,64,.25)':(c.o===todOffset?'rgba(47,111,184,.18)':C.bg2),padding:'3px 0'}}>
-                            <div style={{fontSize:8,fontFamily:fontMono,color:c.o===0?C.gold2:C.txt3,fontWeight:c.o===0?900:400}}>{c.cd.getMonth()+1}.{c.cd.getDate()}</div>
-                            <div style={{fontSize:7,fontFamily:fontMono,color:C.txt3}}>{dows[c.cd.getDay()]}</div>
+                            background:c.o===0?'rgba(200,160,64,.25)':(c.o===todOffset?'rgba(47,111,184,.18)':C.bg2),padding:'4px 0'}}>
+                            <div style={{fontSize:11,fontFamily:fontMono,color:c.o===0?C.gold2:C.txt,fontWeight:c.o===0?900:700}}>{c.cd.getMonth()+1}.{c.cd.getDate()}</div>
+                            <div style={{fontSize:9,fontFamily:fontMono,color:C.txt3}}>{dows[c.cd.getDay()]}</div>
+                            <div style={{fontSize:9,fontFamily:fontMono,color:c.o===0?C.gold2:C.txt3,fontWeight:c.o===0?900:400,marginTop:1}}>{c.o===0?'D-day':c.o>0?'D+'+c.o:'D'+c.o}</div>
                           </div>
                         ))}
                       </div>
                       {/* 밴드 행들 */}
                       {bands.map((b,bi)=>(
                         <div key={bi} style={{display:'flex'}}>
-                          <div style={{width:isMobile?92:130,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2,
-                            display:'flex',alignItems:'center',padding:'0 6px',fontSize:isMobile?9:10,color:b.color,fontWeight:700}}>{b.label}</div>
+                          <div style={{width:isMobile?110:170,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2,
+                            display:'flex',flexDirection:'column',justifyContent:'center',padding:'4px 8px'}}>
+                            <span style={{fontSize:isMobile?11:13,color:b.color,fontWeight:700}}>{b.label}</span>
+                            <span style={{fontSize:isMobile?8:9,color:C.txt3,lineHeight:1.4,marginTop:1}}>{b.caption}</span>
+                          </div>
                           {cols.map(c=>{
                             const inBand = c.o>=b.from && c.o<=b.to;
                             return (
-                              <div key={c.o} style={{width:cw,flexShrink:0,height:24,borderRight:`1px solid rgba(0,0,0,.05)`,borderBottom:`1px solid ${C.g4}`,
+                              <div key={c.o} style={{width:cw,flexShrink:0,height:38,borderRight:`1px solid rgba(0,0,0,.05)`,borderBottom:`1px solid ${C.g4}`,
                                 background:inBand?b.bg:'transparent',
                                 borderTop:inBand?`2px solid ${b.color}`:'none', borderBottomWidth:inBand?2:1, borderBottomColor:inBand?b.color:C.g4,
                                 position:'relative'}}>
@@ -2769,14 +2773,14 @@ function App() {
                       ))}
                       {/* 전달완료 마감 / 훈련일 표시 행 */}
                       <div style={{display:'flex'}}>
-                        <div style={{width:isMobile?92:130,flexShrink:0,borderRight:`1px solid ${C.g4}`,background:C.bg2,
-                          display:'flex',alignItems:'center',padding:'0 6px',fontSize:isMobile?9:10,color:C.red2,fontWeight:700}}>전달완료·훈련일</div>
+                        <div style={{width:isMobile?110:170,flexShrink:0,borderRight:`1px solid ${C.g4}`,background:C.bg2,
+                          display:'flex',alignItems:'center',padding:'4px 8px',fontSize:isMobile?11:13,color:C.red2,fontWeight:700}}>전달완료·훈련일</div>
                         {cols.map(c=>(
-                          <div key={c.o} style={{width:cw,flexShrink:0,height:20,borderRight:`1px solid rgba(0,0,0,.05)`,
+                          <div key={c.o} style={{width:cw,flexShrink:0,height:26,borderRight:`1px solid rgba(0,0,0,.05)`,
                             background:c.o===-8?'rgba(217,69,58,.35)':(c.o===0?'rgba(200,160,64,.35)':'transparent'),
                             display:'flex',alignItems:'center',justifyContent:'center'}}>
-                            {c.o===-8 && <span style={{fontSize:8,color:C.red2,fontWeight:900}}>★</span>}
-                            {c.o===0 && <span style={{fontSize:8,color:C.gold2,fontWeight:900}}>▲</span>}
+                            {c.o===-8 && <span style={{fontSize:11,color:C.red2,fontWeight:900}}>★</span>}
+                            {c.o===0 && <span style={{fontSize:11,color:C.gold2,fontWeight:900}}>▲</span>}
                           </div>
                         ))}
                       </div>
