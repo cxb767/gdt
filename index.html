@@ -451,15 +451,17 @@ function getMasterTasksForDate(y,m,d, masterTasks){
     const moves = t.moves||{};
     const occs = getShiftedOccurrences(t, y, m);
     for(const occ of occs){
-      const movedTo = moves[occ.key];
+      const entry = moves[occ.key]; // undefined=그대로 / '__SKIP__'=삭제됨 / 날짜문자열=그 날짜로 이동됨
       if(occ.key===key){
-        if(movedTo){
+        if(entry==='__SKIP__'){
+          out.push({ text:`${t.text} (이 회차 삭제됨)`, cls:t.cls||'green', law:'', masterId:t.id, preview:true, skipped:true, origKey:occ.key, period:t.period });
+        } else if(entry){
           // 이 회차는 다른 날짜로 이동됨 — 원래 날짜엔 이동 안내만 표시 (체크 불가)
-          out.push({ text:`${t.text} → ${movedTo} 로 이동됨`, cls:t.cls||'green', law:'', masterId:t.id, preview:true, movedOut:true, period:t.period });
+          out.push({ text:`${t.text} → ${entry} 로 이동됨`, cls:t.cls||'green', law:'', masterId:t.id, preview:true, movedOut:true, origKey:occ.key, period:t.period });
         } else {
-          out.push({ text:t.text, cls:t.cls||'green', law:t.law||'', masterId:t.id, preview:false, howto:t.howto||'', steps:t.steps||[], period:t.period });
+          out.push({ text:t.text, cls:t.cls||'green', law:t.law||'', masterId:t.id, preview:false, howto:t.howto||'', steps:t.steps||[], period:t.period, origKey:occ.key });
         }
-      } else if(!movedTo) {
+      } else if(!entry) {
         const diff = Math.round((occ.shifted - target)/(1000*60*60*24));
         if(diff>0){
           // 사전준비 알림: 사용자가 직접 등록한 D-n과 정확히 일치하는 경우만 미리 표시 (그 외엔 당일에만 표시)
@@ -474,7 +476,7 @@ function getMasterTasksForDate(y,m,d, masterTasks){
     // 다른 날짜에서 이 날짜로 옮겨온 회차 표시
     for(const origKey in moves){
       if(moves[origKey]===key){
-        out.push({ text:t.text, cls:t.cls||'green', law:t.law||'', masterId:t.id, preview:false, howto:t.howto||'', steps:t.steps||[], period:t.period, movedIn:true });
+        out.push({ text:t.text, cls:t.cls||'green', law:t.law||'', masterId:t.id, preview:false, howto:t.howto||'', steps:t.steps||[], period:t.period, movedIn:true, origKey });
       }
     }
   }
@@ -1394,8 +1396,11 @@ function App() {
   function delMT(id) { if(!confirm('이 업무를 삭제하시겠습니까?')) return; saveMasterTasks(masterTasks.filter(t=>t.id!==id)); }
   function toggleMTActive(id) { saveMasterTasks(masterTasks.map(t=>t.id===id?{...t,active:!t.active}:t)); }
   function tryMoveTask(t, dateKey){
-    if(!t.masterId || t.period==='daily' || t.period==='unplanned'){ alert('이 업무는 이동할 수 없습니다 (일일업무·미계획업무는 이동 대상이 아닙니다).'); return; }
-    setMoveTarget({masterId:t.masterId, origKey:dateKey, text:t.text, date:dateKey});
+    if(!t.masterId || t.period==='daily' || t.period==='unplanned' || t.isPrep){ alert('이 항목은 이동할 수 없습니다 (사전준비 알림·일일업무·미계획업무는 이동 대상이 아닙니다).'); return; }
+    const origKey = t.origKey || dateKey;
+    const mt = masterTasks.find(m=>m.id===t.masterId);
+    const existing = mt && mt.moves ? mt.moves[origKey] : undefined;
+    setMoveTarget({masterId:t.masterId, origKey, text:t.text, date:(existing&&existing!=='__SKIP__')?existing:origKey, existing:existing||null});
   }
   function confirmMoveTask(){
     if(!moveTarget) return;
@@ -1404,6 +1409,27 @@ function App() {
     const nmt = masterTasks.map(t=> t.id===moveTarget.masterId ? {...t, moves:{...(t.moves||{}), [moveTarget.origKey]:moveTarget.date}} : t);
     saveMasterTasks(nmt);
     setMoveTarget(null);
+  }
+  function skipMoveTask(){
+    if(!moveTarget) return;
+    const nmt = masterTasks.map(t=> t.id===moveTarget.masterId ? {...t, moves:{...(t.moves||{}), [moveTarget.origKey]:'__SKIP__'}} : t);
+    saveMasterTasks(nmt);
+    setMoveTarget(null);
+  }
+  function restoreMoveTask(){
+    if(!moveTarget) return;
+    const nmt = masterTasks.map(t=>{
+      if(t.id!==moveTarget.masterId) return t;
+      const nm = {...(t.moves||{})};
+      delete nm[moveTarget.origKey];
+      return {...t, moves:nm};
+    });
+    saveMasterTasks(nmt);
+    setMoveTarget(null);
+  }
+  function clearAllMoves(masterId){
+    if(!confirm('이 업무의 모든 이동·삭제 기록을 초기화하고 원래 주기대로 되돌릴까요?')) return;
+    saveMasterTasks(masterTasks.map(t=>t.id===masterId?{...t,moves:{}}:t));
   }
   const periodLabel = {daily:'매일',weekly:'매주',monthly:'매월',quarterly:'분기말',halfyear:'반기',yearly:'매년',unplanned:'미계획(직접지정)'};
   function mtScheduleText(t){
@@ -1551,7 +1577,7 @@ function App() {
   const selTasks = selDate ? (() => {
     const [y,m,d]=selDate.split('-').map(Number);
     const base = getTasks(y,m-1,d,custom); // 사용자 등록 업무(업무추가)
-    const masterAll = getMasterTasksForDate(y,m-1,d,masterTasks).filter(t=>moveMode||!t.movedOut);
+    const masterAll = getMasterTasksForDate(y,m-1,d,masterTasks).filter(t=>moveMode||(!t.movedOut&&!t.skipped));
     const master = masterAll.filter(t=>!t.preview); // 순기+미계획 지정된 업무
     const preview = masterAll.filter(t=>t.preview); // 사전준비 알림 + (수정모드일 때만) 이동됨 안내
     const ddTasks = getDdayTasksForDate(y,m-1,d);
@@ -1905,7 +1931,7 @@ function App() {
                   const baseTasks=other?[]:getTasks(y,m,d,custom);
                   const ddTasks=other?[]:getDdayTasksForDate(y,m,d);
                   const masterHereRaw=other?[]:getMasterTasksForDate(y,m,d,masterTasks);
-                  const masterHere=moveMode?masterHereRaw:masterHereRaw.filter(t=>!t.movedOut);
+                  const masterHere=moveMode?masterHereRaw:masterHereRaw.filter(t=>!t.movedOut&&!t.skipped);
                   const masterDue=masterHere.filter(t=>!t.preview);
                   const masterPreview=masterHere.filter(t=>t.preview);
                   const tasks=[...masterDue,...baseTasks,...ddTasks,...masterPreview];
@@ -1990,15 +2016,16 @@ function App() {
                           const tag = PERIOD_TAG[t.period];
                           const lawText = (t.law && !GENERIC_LAW.has(t.law)) ? t.law : '';
                           const subtitle = [lawText, (hasSteps && !isNA) ? `수행절차 (${stepsDoneCount}/${t.steps.length})` : ''].filter(Boolean).join(' · ');
-                          const isMoving = moveMode && moveTarget && t.masterId && moveTarget.masterId===t.masterId && moveTarget.origKey===selDate;
+                          const isMoving = moveMode && moveTarget && t.masterId && moveTarget.masterId===t.masterId && moveTarget.origKey===(t.origKey||selDate);
+                          const moveClickable = moveMode && (t.movedOut || t.skipped || !isPrev);
                           return (
                             <li key={i} style={{padding:isMobile?'8px 0':'5px 0', borderBottom:`1px solid rgba(42,69,29,.2)`, opacity:isPrev?.55:1,
                               background:isMoving?'rgba(200,160,64,.16)':'transparent', outline:isMoving?`2px solid ${C.gold}`:'none'}}>
                               <div onClick={()=>{
+                                if(moveClickable){ tryMoveTask(t, t.origKey||selDate); return; }
                                 if(isPrev) return;
-                                if(moveMode){ tryMoveTask(t, selDate); return; }
                                 hasSteps?toggleHowto(hkey):toggleCheck(tkey);
-                              }} style={{display:'flex',alignItems:'flex-start',gap:8,cursor:isPrev?'default':'pointer'}}>
+                              }} style={{display:'flex',alignItems:'flex-start',gap:8,cursor:(isPrev&&!moveClickable)?'default':'pointer'}}>
                                 {!isPrev && <div style={{width:16,height:16,border:`1.5px solid ${done?C.g7:C.g5}`,
                                   background:isNA?C.g6:(done?C.g7:'transparent'),flexShrink:0,marginTop:1,
                                   display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -3123,9 +3150,14 @@ function App() {
                 ))}
               </div>
             </div>
-            <div style={{padding:'9px 14px',borderTop:`1px solid ${C.g4}`,display:'flex',gap:6,justifyContent:'flex-end',background:C.bg2,position:'sticky',bottom:0}}>
-              <button onClick={()=>setShowMTM(false)} style={s.btn(false)}>취소</button>
-              <button onClick={saveMT} style={s.btn(true)}>💾 저장</button>
+            <div style={{padding:'9px 14px',borderTop:`1px solid ${C.g4}`,display:'flex',gap:6,justifyContent:'space-between',alignItems:'center',background:C.bg2,position:'sticky',bottom:0,flexWrap:'wrap'}}>
+              {mtEditId && masterTasks.find(t=>t.id===mtEditId)?.moves && Object.keys(masterTasks.find(t=>t.id===mtEditId).moves).length>0
+                ? <button onClick={()=>clearAllMoves(mtEditId)} style={{background:'transparent',border:`1px solid ${C.red2}`,color:C.red2,padding:'8px 10px',fontSize:11,fontWeight:700,cursor:'pointer'}}>↺ 이동·삭제 기록 전체 초기화</button>
+                : <span/>}
+              <div style={{display:'flex',gap:6}}>
+                <button onClick={()=>setShowMTM(false)} style={s.btn(false)}>취소</button>
+                <button onClick={saveMT} style={s.btn(true)}>💾 저장</button>
+              </div>
             </div>
           </div>
         </div>
@@ -3388,15 +3420,20 @@ function App() {
       {moveTarget && (
         <div onClick={()=>setMoveTarget(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:530,display:'flex',alignItems:isMobile?'flex-end':'center',justifyContent:'center'}}>
           <div onClick={e=>e.stopPropagation()} style={{background:C.bg1,border:`2px solid ${C.gold}`,width:isMobile?'100%':360,maxWidth:'96vw',padding:18}}>
-            <div style={{fontSize:13,fontWeight:900,color:C.gold,marginBottom:4}}>📅 일정 이동</div>
+            <div style={{fontSize:13,fontWeight:900,color:C.gold,marginBottom:4}}>📅 일정 이동·삭제</div>
             <div style={{fontSize:13,color:C.tan,fontWeight:700,margin:'8px 0 2px'}}>{moveTarget.text}</div>
-            <div style={{fontSize:10,color:C.txt3,fontFamily:fontMono,marginBottom:12}}>현재 날짜: {moveTarget.origKey}</div>
+            <div style={{fontSize:10,color:C.txt3,fontFamily:fontMono,marginBottom:4}}>원래 날짜: {moveTarget.origKey}</div>
+            {moveTarget.existing && (
+              <div style={{fontSize:10,color:C.gold2,marginBottom:8}}>
+                {moveTarget.existing==='__SKIP__' ? '⚠ 현재 이 회차는 삭제된 상태입니다' : `⚠ 현재 ${moveTarget.existing} 로 이동된 상태입니다`}
+              </div>
+            )}
             <div style={{fontSize:10,color:C.txt3,marginBottom:6}}>옮길 날짜</div>
-            <input type="date" value={moveTarget.date} onChange={e=>setMoveTarget(mv=>({...mv,date:e.target.value}))} style={{...s.input,width:'100%',boxSizing:'border-box',marginBottom:14}}/>
-            <div style={{display:'flex',gap:8}}>
-              <button onClick={()=>setMoveTarget(null)} style={{...s.btn(false),flex:1}}>취소</button>
-              <button onClick={confirmMoveTask} style={{...s.btn(true),flex:1}}>이동</button>
-            </div>
+            <input type="date" value={moveTarget.date} onChange={e=>setMoveTarget(mv=>({...mv,date:e.target.value}))} style={{...s.input,width:'100%',boxSizing:'border-box',marginBottom:10}}/>
+            <button onClick={confirmMoveTask} style={{...s.btn(true),width:'100%',marginBottom:8}}>➜ 이 날짜로 이동</button>
+            <button onClick={skipMoveTask} style={{background:'transparent',border:`1px solid ${C.red2}`,color:C.red2,width:'100%',padding:'8px',fontSize:12,fontWeight:700,cursor:'pointer',marginBottom:8}}>🗑 이 회차만 삭제 (안 보이게)</button>
+            {moveTarget.existing && <button onClick={restoreMoveTask} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt2,width:'100%',padding:'8px',fontSize:12,cursor:'pointer',marginBottom:8}}>↺ 원래대로 복구</button>}
+            <button onClick={()=>setMoveTarget(null)} style={{...s.btn(false),width:'100%'}}>취소</button>
           </div>
         </div>
       )}
