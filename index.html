@@ -2766,9 +2766,9 @@ function App() {
                     <button onClick={()=>moveMT(t.id,-1)} disabled={isFirst} style={{background:'transparent',border:`1px solid ${C.g5}`,color:isFirst?C.g5:C.txt2,padding:'1px 6px',fontSize:9,cursor:isFirst?'default':'pointer'}}>▲</button>
                     <button onClick={()=>moveMT(t.id,1)} disabled={isLast} style={{background:'transparent',border:`1px solid ${C.g5}`,color:isLast?C.g5:C.txt2,padding:'1px 6px',fontSize:9,cursor:isLast?'default':'pointer'}}>▼</button>
                   </div>
-                  <div style={{minWidth:160}}>
+                  <div style={{width:isMobile?150:220,flexShrink:0}}>
                     <div style={{fontSize:13,fontWeight:700,color:C.tan}}>
-                      {tag && <span style={{fontSize:8,color:clsColor[PERIOD_COLOR[t.period]]||C.txt3,fontFamily:fontMono,marginRight:4}}>[{tag}]</span>}
+                      {tag && <span style={{fontSize:13,color:clsColor[PERIOD_COLOR[t.period]]||C.txt3,fontFamily:fontMono,marginRight:4}}>[{tag}]</span>}
                       {t.text}{isUnplanned && <span style={{marginLeft:6,fontSize:9,color:C.red3,fontFamily:fontMono}}>[미계획]</span>}
                     </div>
                     <div style={{fontSize:9,color:C.txt3,fontFamily:fontMono,marginTop:2}}>{mtScheduleText(t)}{t.law && ` · ${t.law}`}</div>
