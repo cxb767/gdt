@@ -1061,16 +1061,7 @@ function App() {
   const saveMasterTasks = useCallback(mt => { setMasterTasks(mt); save(K.MT, mt); }, []);
   const unplannedTasks = getUnplannedTasks(masterTasks);
 
-  // 앱 진입 시 "미계획 업무 있음" 팝업 (하루 1회만)
-  useEffect(() => {
-    const todayKey = dk(today.getFullYear(), today.getMonth(), today.getDate());
-    const lastPop = localStorage.getItem(K.POP);
-    if(unplannedTasks.length>0 && lastPop!==todayKey){
-      setShowUnplannedModal(true);
-      localStorage.setItem(K.POP, todayKey);
-    }
-    // eslint-disable-next-line
-  }, []);
+  // "미계획 업무 있음" 자동 팝업은 거슬려서 제거 — 월력표 상단 배너로만 안내
 
   const emptyForm = {name:'',year:'',role:'예비역(병)',mobileTarget:'yes',branch:'육군',phone:'',phone2:'',address:'',dis:'',enr:'',exp:'',svc:'',status:'normal',trainOrder:'1',mnote:'',hst:'',hend:'',note:'',trainRecs:[]};
 
