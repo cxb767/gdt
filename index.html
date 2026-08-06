@@ -718,7 +718,24 @@ function App() {
   const today = new Date();
   const isMobile = useIsMobile();
   const [mode, setMode] = useState('cal');
-  const [showUnitMenu, setShowUnitMenu] = useState(false); // 부대관리 드롭다운(업무일지/CD작업일지)
+  const [showUnitMenu, setShowUnitMenu] = useState(false); // 부대관리 드롭다운(업무일지/CD작업일지/휴가관리)
+  const [leaves, setLeaves] = useState(loadArr('gdt_leaves'));
+  const saveLeaves = (arr) => { setLeaves(arr); save('gdt_leaves', arr); };
+  const [leaveForm, setLeaveForm] = useState({person:'기동대장', name:'', start:'', end:'', memo:''});
+  function addLeave(){
+    if(!leaveForm.start || !leaveForm.end){ alert('휴가 시작일과 종료일을 선택하세요.'); return; }
+    if(leaveForm.end < leaveForm.start){ alert('종료일이 시작일보다 빠릅니다.'); return; }
+    saveLeaves([...leaves, {...leaveForm, id:'lv'+Date.now()}]);
+    setLeaveForm({person:leaveForm.person, name:'', start:'', end:'', memo:''});
+  }
+  function delLeave(id){ if(!confirm('이 휴가 일정을 삭제하시겠습니까?')) return; saveLeaves(leaves.filter(l=>l.id!==id)); }
+  function getLeaveTasksForDate(y,m,d){
+    const key = dk(y,m,d);
+    return leaves.filter(l=>key>=l.start && key<=l.end).map(l=>({
+      text:`🏖 ${l.person}${l.name?'('+l.name+')':''} 휴가${l.memo?' — '+l.memo:''}`,
+      cls:'teal', law:`${l.start}~${l.end}`, preview:true, leaveId:l.id
+    }));
+  }
   const [curY, setCurY] = useState(today.getFullYear());
   const [curM, setCurM] = useState(today.getMonth());
   const [selDate, setSelDate] = useState(null); // 달력 그리드는 안 건드리고, 별도 단일패널에 표시
@@ -1723,7 +1740,8 @@ function App() {
     const master = masterAll.filter(t=>!t.preview); // 순기+미계획 지정된 업무
     const preview = masterAll.filter(t=>t.preview); // 사전준비 알림 + (수정모드일 때만) 이동됨 안내
     const ddTasks = getDdayTasksForDate(y,m-1,d);
-    return [...selDailyFlat, ...master, ...base, ...ddTasks, ...preview];
+    const leaveTasks = getLeaveTasksForDate(y,m-1,d);
+    return [...selDailyFlat, ...master, ...base, ...ddTasks, ...preview, ...leaveTasks];
   })() : [];
   const selItemDone = (t) => {
     const bk = t.checkKey || (selDate+'_'+t.text);
@@ -1788,8 +1806,9 @@ function App() {
                     if(other) return <td key={ci} style={{border:'1px solid #ccc',height:70,verticalAlign:'top',padding:3,color:'#bbb'}}>{d}</td>;
                     const baseTasks=getTasks(y,m,d,custom);
                     const ddTasks=getDdayTasksForDate(y,m,d);
+                    const leaveTasks=getLeaveTasksForDate(y,m,d);
                     const masterHere=getMasterTasksForDate(y,m,d,masterTasks).filter(t=>!t.preview);
-                    const tasks=[...masterHere,...baseTasks,...ddTasks];
+                    const tasks=[...masterHere,...baseTasks,...ddTasks,...leaveTasks];
                     return (
                       <td key={ci} style={{border:'1px solid #999',height:70,verticalAlign:'top',padding:3}}>
                         <div style={{fontWeight:700,marginBottom:2}}>{d}</div>
@@ -1934,12 +1953,13 @@ function App() {
             </div>
             <div style={{display:'flex',gap:3,overflowX:'auto'}}>
               <div style={{position:'relative',flexShrink:0}}>
-                <button style={s.tab(mode==='journal'||mode==='rwlog')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
+                <button style={s.tab(mode==='journal'||mode==='rwlog'||mode==='leave')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
                 {showUnitMenu && (<>
                   <div onClick={()=>setShowUnitMenu(false)} style={{position:'fixed',inset:0,zIndex:190}}/>
                   <div style={{position:'absolute',top:'100%',left:0,marginTop:2,background:C.bg1,border:`1px solid ${C.gold}`,zIndex:200,minWidth:140}}>
                     <button onClick={()=>{setMode('journal');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='journal'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📝 업무일지</button>
                     <button onClick={()=>{setMode('rwlog');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='rwlog'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📀 CD 작업일지</button>
+                    <button onClick={()=>{setMode('leave');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='leave'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>🏖 휴가관리</button>
                   </div>
                 </>)}
               </div>
@@ -1963,12 +1983,13 @@ function App() {
             </div>
             <div style={{display:'flex',alignItems:'center',gap:3,padding:'8px 10px',borderRight:`1px solid ${C.g4}`}}>
               <div style={{position:'relative',flexShrink:0}}>
-                <button style={s.tab(mode==='journal'||mode==='rwlog')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
+                <button style={s.tab(mode==='journal'||mode==='rwlog'||mode==='leave')} onClick={()=>setShowUnitMenu(v=>!v)}>🏢 부대관리 {showUnitMenu?'▲':'▼'}</button>
                 {showUnitMenu && (<>
                   <div onClick={()=>setShowUnitMenu(false)} style={{position:'fixed',inset:0,zIndex:190}}/>
                   <div style={{position:'absolute',top:'100%',left:0,marginTop:2,background:C.bg1,border:`1px solid ${C.gold}`,zIndex:200,minWidth:150}}>
                     <button onClick={()=>{setMode('journal');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='journal'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📝 업무일지</button>
                     <button onClick={()=>{setMode('rwlog');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='rwlog'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>📀 CD 작업일지</button>
+                    <button onClick={()=>{setMode('leave');setShowUnitMenu(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'9px 12px',background:mode==='leave'?C.g4:'transparent',border:'none',color:C.txt,fontSize:12,cursor:'pointer'}}>🏖 휴가관리</button>
                   </div>
                 </>)}
               </div>
@@ -2070,9 +2091,9 @@ function App() {
           <div style={{display:'grid', gridTemplateColumns:isMobile?'1fr':'minmax(0,2.1fr) minmax(260px,1fr)', gap:14, alignItems:'start'}}>
             <div style={{minWidth:0, overflow:'hidden', background:C.bg1, border:`1px solid ${C.g4}`, padding:isMobile?8:12}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,paddingBottom:6,borderBottom:`1px solid ${C.g4}`}}>
-                <div style={{fontSize:10,fontWeight:700,color:C.gold,fontFamily:fontMono,letterSpacing:2}}>📅 월력</div>
+                <div style={{fontSize:14,fontWeight:700,color:C.gold,fontFamily:fontMono,letterSpacing:2}}>📅 월력</div>
                 <button onClick={()=>{setMoveMode(v=>!v); setMoveTarget(null);}}
-                  style={{background:moveMode?C.gold:'transparent',border:`1px solid ${moveMode?C.gold:C.g5}`,color:moveMode?C.bg:C.txt3,padding:'3px 8px',fontSize:9,fontWeight:700,cursor:'pointer',fontFamily:fontMono}}>
+                  style={{background:moveMode?C.gold:'transparent',border:`1px solid ${moveMode?C.gold:C.g5}`,color:moveMode?C.bg:C.txt3,padding:'5px 10px',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:fontMono}}>
                   {moveMode?'✅ 일정수정 종료':'🔧 일정수정'}
                 </button>
               </div>
@@ -2099,11 +2120,12 @@ function App() {
                   const isSel=key===selDate;
                   const baseTasks=other?[]:getTasks(y,m,d,custom);
                   const ddTasks=other?[]:getDdayTasksForDate(y,m,d);
+                  const leaveTasks=other?[]:getLeaveTasksForDate(y,m,d);
                   const masterHereRaw=other?[]:getMasterTasksForDate(y,m,d,masterTasks);
                   const masterHere=moveMode?masterHereRaw:masterHereRaw.filter(t=>!t.movedOut&&!t.skipped);
                   const masterDue=masterHere.filter(t=>!t.preview);
                   const masterPreview=masterHere.filter(t=>t.preview);
-                  const tasks=[...masterDue,...baseTasks,...ddTasks,...masterPreview];
+                  const tasks=[...masterDue,...baseTasks,...ddTasks,...masterPreview,...leaveTasks];
                   const maxShow = isMobile?1:4;
                   return (
                     <div key={i}
@@ -2130,7 +2152,7 @@ function App() {
                               style={{fontSize:9, lineHeight:1.4, padding:'1px 3px', minWidth:0, maxWidth:'100%', boxSizing:'border-box',
                                 borderLeft:`2px solid ${clsColor[t.cls]||C.g7}`, background:tagBg[t.cls]||tagBg.green,
                                 color:clsColor[t.cls]||C.g8, overflow:'hidden', textOverflow:'ellipsis',
-                                whiteSpace:isMobile?'normal':'nowrap', cursor:'pointer',
+                                whiteSpace:'normal', cursor:'pointer',
                                 opacity:checks[gtkey]?.35:1, textDecoration:checks[gtkey]?'line-through':'none'}}>
                               {t.text}
                               {isMobile && <span style={{fontSize:9,color:C.txt3,marginLeft:6,fontFamily:fontMono}}>{t.law}</span>}
@@ -2148,7 +2170,7 @@ function App() {
 
             {/* 선택일 단일 패널 — 폰: 달력 아래 / PC: 달력 우측 고정영역. 달력과 동일한 스타일의 별도 박스로 항상 구분됨 */}
             <div style={{minWidth:0, overflow:'hidden', background:C.bg1, border:`1px solid ${C.g4}`, padding:isMobile?8:12}}>
-              <div style={{fontSize:10,fontWeight:700,color:C.gold,fontFamily:fontMono,letterSpacing:2,marginBottom:8,paddingBottom:6,borderBottom:`1px solid ${C.g4}`}}>📋 업무표시</div>
+              <div style={{fontSize:14,fontWeight:700,color:C.gold,fontFamily:fontMono,letterSpacing:2,marginBottom:8,paddingBottom:6,borderBottom:`1px solid ${C.g4}`}}>📋 업무표시</div>
               {!selDate ? (
                 <div style={{border:`1px dashed ${C.g4}`,padding:20,textAlign:'center',color:C.txt3,fontSize:12}}>
                   날짜를 클릭하면 여기에 업무가 표시됩니다
@@ -2206,7 +2228,7 @@ function App() {
                                 {isPrev && <div style={{width:16,textAlign:'center',flexShrink:0,fontSize:11,color:t.isPrep?C.red2:C.gold2}}>{t.isPrep?'⚑':'◇'}</div>}
                                 <div style={{flex:1}}>
                                   <div style={{fontSize:13,color:isPrev?(t.isPrep?C.red2:C.gold2):(done?C.txt3:C.txt),textDecoration:!isPrev&&done&&!isNA?'line-through':'none',lineHeight:1.4}}>
-                                    {tag && <span style={{fontSize:8,color:clsColor[PERIOD_COLOR[t.period]]||C.txt3,fontFamily:fontMono,marginRight:4}}>[{tag}]</span>}
+                                    {tag && <span style={{fontSize:13,color:clsColor[PERIOD_COLOR[t.period]]||C.txt3,fontFamily:fontMono,marginRight:4}}>[{tag}]</span>}
                                     {t.text}{isNA && <span style={{fontSize:9,color:C.txt3,marginLeft:5}}>(해당없음)</span>}
                                   </div>
                                   {subtitle && <div style={{fontSize:9,color:C.txt3,fontFamily:fontMono}}>{subtitle}</div>}
@@ -2346,7 +2368,7 @@ function App() {
                             </div>
                             <div style={{flex:1}}>
                               <div style={{fontSize:13,color:done?C.txt3:C.txt,textDecoration:done&&!isNA?'line-through':'none',lineHeight:1.4}}>
-                                {tag && <span style={{fontSize:8,color:clsColor[PERIOD_COLOR[itemPeriod]]||C.txt3,fontFamily:fontMono,marginRight:4}}>[{tag}]</span>}
+                                {tag && <span style={{fontSize:13,color:clsColor[PERIOD_COLOR[itemPeriod]]||C.txt3,fontFamily:fontMono,marginRight:4}}>[{tag}]</span>}
                                 {item.t}{isNA && <span style={{fontSize:9,color:C.txt3,marginLeft:5}}>(해당없음)</span>}
                               </div>
                               {subtitle && <div style={{fontSize:9,color:C.txt3,fontFamily:fontMono}}>{subtitle}</div>}
@@ -2748,17 +2770,17 @@ function App() {
 
           {ddTrains.length>0 && (
             <div style={{background:C.bg1,border:`1px solid ${C.g4}`,borderLeft:`4px solid ${C.gold}`,padding:'10px 13px',marginBottom:10}}>
-              <div style={{fontSize:10,fontWeight:700,color:C.gold,fontFamily:fontMono,letterSpacing:1,marginBottom:7}}>📌 월력표 등록 훈련 ({ddTrains.length}개)</div>
+              <div style={{fontSize:14,fontWeight:700,color:C.gold,fontFamily:fontMono,letterSpacing:1,marginBottom:7}}>📌 월력표 등록 훈련 ({ddTrains.length}개)</div>
               <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                {ddTrains.map((t,i)=>(
-                  <div key={i} style={{background:ddEditDate===t.trainDate?C.bg:(viewedTrain&&viewedTrain.trainDate===t.trainDate?'rgba(47,111,184,.10)':C.bg2),border:`1px solid ${ddEditDate===t.trainDate?C.gold:(viewedTrain&&viewedTrain.trainDate===t.trainDate?C.blue3:C.g5)}`,padding:'5px 10px',display:'flex',alignItems:'center',gap:8}}>
-                    <span style={{fontSize:11,color:C.gold2,fontFamily:fontMono}}>{t.trainDate}</span>
-                    <span style={{fontSize:11,color:C.txt2}}>{t.trainOrder||1}차 {t.trainType}{t.trainName?' · '+t.trainName:''}</span>
-                    <button onClick={()=>viewDdTrainSchedule(t)} style={{background:'transparent',border:`1px solid ${C.blue3}`,color:C.blue3,fontSize:10,padding:'2px 6px',cursor:'pointer',fontWeight:700}}>📅 일정보기</button>
-                    <button onClick={()=>openCheckinItemsModal(t)} disabled={qrBusy} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.blue3,fontSize:10,padding:'2px 6px',cursor:'pointer'}}>📱 QR</button>
-                    <button onClick={()=>openCheckinStatus(t)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.g8,fontSize:10,padding:'2px 6px',cursor:'pointer'}}>📊 현황</button>
-                    <button onClick={()=>editDdTrain(t)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.gold2,fontSize:10,padding:'2px 6px',cursor:'pointer'}}>✏ 수정</button>
-                    <button onClick={()=>delDdTrain(t.trainDate)} style={{background:'transparent',border:`1px solid ${C.red}`,color:C.red2,fontSize:10,padding:'2px 6px',cursor:'pointer'}}>삭제</button>
+                {[...ddTrains].sort((a,b)=>a.trainDate.localeCompare(b.trainDate)).map((t,i)=>(
+                  <div key={i} style={{background:ddEditDate===t.trainDate?C.bg:(viewedTrain&&viewedTrain.trainDate===t.trainDate?'rgba(47,111,184,.10)':C.bg2),border:`1px solid ${ddEditDate===t.trainDate?C.gold:(viewedTrain&&viewedTrain.trainDate===t.trainDate?C.blue3:C.g5)}`,padding:'6px 10px',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                    <span style={{fontSize:13,color:C.gold2,fontFamily:fontMono,fontWeight:700,whiteSpace:'nowrap'}}>{t.trainDate}</span>
+                    <span style={{fontSize:13,color:C.txt2,whiteSpace:'nowrap'}}>{t.trainOrder||1}차 {t.trainType}{t.trainName?' · '+t.trainName:''}</span>
+                    <button onClick={()=>viewDdTrainSchedule(t)} style={{background:'transparent',border:`1px solid ${C.blue3}`,color:C.blue3,fontSize:11,padding:'3px 7px',cursor:'pointer',fontWeight:700,whiteSpace:'nowrap'}}>📅 일정보기</button>
+                    <button onClick={()=>openCheckinItemsModal(t)} disabled={qrBusy} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.blue3,fontSize:11,padding:'3px 7px',cursor:'pointer',whiteSpace:'nowrap'}}>📱 QR</button>
+                    <button onClick={()=>openCheckinStatus(t)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.g8,fontSize:11,padding:'3px 7px',cursor:'pointer',whiteSpace:'nowrap'}}>📊 현황</button>
+                    <button onClick={()=>editDdTrain(t)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.gold2,fontSize:11,padding:'3px 7px',cursor:'pointer',whiteSpace:'nowrap'}}>✏ 수정</button>
+                    <button onClick={()=>delDdTrain(t.trainDate)} style={{background:'transparent',border:`1px solid ${C.red}`,color:C.red2,fontSize:11,padding:'3px 7px',cursor:'pointer',whiteSpace:'nowrap'}}>삭제</button>
                   </div>
                 ))}
               </div>
@@ -2928,18 +2950,22 @@ function App() {
               <button onClick={()=>openDdStep()} style={{...s.btn(true),marginLeft:isMobile?0:'auto',width:isMobile?'100%':'auto'}}>+ 절차 추가</button>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
-              {ddSteps.map(s=>(
+              {(()=>{
+                const longestChars = Math.max(0, ...ddSteps.map(s=>s.name.length));
+                const nameColW = Math.min(isMobile?260:440, Math.max(isMobile?120:180, longestChars*(isMobile?11:9)+16));
+                return ddSteps.map(s=>(
                 <div key={s.id} style={{background:C.bg1,border:`1px solid ${C.g4}`,borderLeft:`4px solid ${clsColor[s.cls]||C.g6}`,padding:'7px 10px',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
                   <span style={{fontSize:10,color:C.gold2,fontFamily:fontMono,minWidth:36}}>{s.d===0?'D-day':s.d>0?'D+'+s.d:'D'+s.d}</span>
-                  <div style={{flex:1,minWidth:120}}>
-                    <div style={{fontSize:12,color:C.tan}}>{s.name}</div>
+                  <div style={{width:nameColW,flexShrink:0}}>
+                    <div style={{fontSize:13,color:C.tan,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{s.name}</div>
                     {s.law && !GENERIC_LAW.has(s.law) && <div style={{fontSize:9,color:C.txt3,fontFamily:fontMono}}>{s.law}</div>}
                   </div>
                   <span style={{fontSize:9,fontFamily:fontMono,padding:'2px 6px',border:`1px solid ${clsColor[OWNER_COLOR[s.owner]]||C.g5}`,color:clsColor[OWNER_COLOR[s.owner]]||C.txt3}}>{s.owner||'나'}</span>
                   <button onClick={()=>openDdStep(s.id)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.gold2,fontSize:10,padding:'4px 8px',cursor:'pointer'}}>✏ 수정</button>
                   <button onClick={()=>delDdStep(s.id)} style={{background:'transparent',border:`1px solid ${C.red}`,color:C.red2,fontSize:10,padding:'4px 8px',cursor:'pointer'}}>삭제</button>
                 </div>
-              ))}
+                ));
+              })()}
               {ddSteps.length===0 && <div style={{textAlign:'center',padding:24,color:C.txt3,fontSize:12}}>등록된 절차가 없습니다</div>}
             </div>
           </div>
@@ -3037,6 +3063,48 @@ function App() {
           <div style={{display:'flex',gap:8,marginTop:8}}>
             <button onClick={()=>{ if(!journalText){alert('먼저 일지를 생성하세요.');return;} navigator.clipboard?.writeText(journalText).then(()=>alert('클립보드에 복사됐습니다. 국동체에 붙여넣으세요.')); }} style={{...s.btn(false),flex:1}}>📋 클립보드 복사</button>
             <button onClick={()=>{ if(!journalText)return; const nj={...load(K.JN)}; nj[dailyKey]=journalText; save(K.JN,nj); alert('일지가 저장됐습니다.'); }} style={{...s.btn(false),flex:1}}>💾 보관</button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════ 휴가관리 (기동대장·행정병 — 부대관리 하위메뉴, 월력표에 자동 반영) ══════════ */}
+      {mode==='leave' && (
+        <div style={{padding:isMobile?10:11}}>
+          <h2 style={{fontSize:15,fontWeight:900,color:C.tan,margin:'0 0 4px'}}>🏖 휴가관리</h2>
+          <div style={{fontSize:10,color:C.txt3,marginBottom:10}}>기동대장·행정병 휴가를 등록하면 월력표 해당 기간에 자동으로 표시됩니다.</div>
+
+          <div style={{background:C.bg1,border:`1px solid ${C.g4}`,borderLeft:`4px solid ${C.gold}`,padding:'10px 13px',marginBottom:12}}>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:8}}>
+              <select value={leaveForm.person} onChange={e=>setLeaveForm(f=>({...f,person:e.target.value}))} style={{...s.input,width:120}}>
+                <option value="기동대장">기동대장</option>
+                <option value="행정병">행정병</option>
+              </select>
+              <input value={leaveForm.name} onChange={e=>setLeaveForm(f=>({...f,name:e.target.value}))} placeholder="이름(선택)" style={{...s.input,width:120}}/>
+            </div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center',marginBottom:8}}>
+              <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                <label style={{fontSize:9,color:C.txt3,fontFamily:fontMono}}>시작일</label>
+                <input type="date" value={leaveForm.start} onChange={e=>setLeaveForm(f=>({...f,start:e.target.value}))} style={{...s.input,width:160}}/>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                <label style={{fontSize:9,color:C.txt3,fontFamily:fontMono}}>종료일</label>
+                <input type="date" value={leaveForm.end} onChange={e=>setLeaveForm(f=>({...f,end:e.target.value}))} style={{...s.input,width:160}}/>
+              </div>
+            </div>
+            <input value={leaveForm.memo} onChange={e=>setLeaveForm(f=>({...f,memo:e.target.value}))} placeholder="메모(선택 — 사유 등)" style={{...s.input,width:'100%',boxSizing:'border-box',marginBottom:8}}/>
+            <button onClick={addLeave} style={s.btn(true)}>+ 휴가 등록</button>
+          </div>
+
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {[...leaves].sort((a,b)=>a.start.localeCompare(b.start)).map(l=>(
+              <div key={l.id} style={{background:C.bg1,border:`1px solid ${C.g4}`,borderLeft:`4px solid ${C.g8}`,padding:'9px 12px',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                <span style={{fontSize:13,fontWeight:700,color:C.tan}}>{l.person}{l.name?`(${l.name})`:''}</span>
+                <span style={{fontSize:12,color:C.gold2,fontFamily:fontMono}}>{l.start} ~ {l.end}</span>
+                {l.memo && <span style={{fontSize:11,color:C.txt3}}>{l.memo}</span>}
+                <button onClick={()=>delLeave(l.id)} style={{marginLeft:'auto',background:'transparent',border:`1px solid ${C.g5}`,color:C.txt3,padding:'5px 8px',fontSize:11,cursor:'pointer'}}>✕</button>
+              </div>
+            ))}
+            {leaves.length===0 && <div style={{textAlign:'center',padding:24,color:C.txt3,fontSize:12}}>등록된 휴가가 없습니다</div>}
           </div>
         </div>
       )}
