@@ -157,6 +157,12 @@ function seedMasterTasks(){
   arr.push(mk({text:'핸드토키 채널 변경', law:'', cls:'gold', period:'monthly', day:'last'}, i++));
   arr.push(mk({text:'월중행사계획표 작성', law:'', cls:'gold', period:'monthly', day:1,
     steps:['순기업무 작성 (분기 이상 업무는 구체적 일자 지정)','예비군교육훈련 주기 작성','기타 예정사항 작성','업무연락 확인 시 일정 반영 내용은 즉시 작성']}, i++));
+  arr.push(mk({text:'국동체 비밀번호 변경(기동대장 계정)', law:'', cls:'red', period:'monthly', day:1,
+    howto:'변경 후 반드시 상단 🔑 D-day 위젯에서 "오늘 변경함"을 눌러 갱신. 30일 경과 시 계정이 잠기며 상급부대에 잠금해제 요청 필요.',
+    steps:['국동체 접속 → 비밀번호 변경','상단 🔑 위젯에서 기동대장 계정 "오늘 변경함" 클릭']}, i++));
+  arr.push(mk({text:'국동체 비밀번호 변경(행정병 계정)', law:'', cls:'red', period:'monthly', day:1,
+    howto:'변경 후 반드시 상단 🔑 D-day 위젯에서 "오늘 변경함"을 눌러 갱신. 30일 경과 시 계정이 잠기며 상급부대에 잠금해제 요청 필요.',
+    steps:['국동체 접속 → 비밀번호 변경','상단 🔑 위젯에서 행정병 계정 "오늘 변경함" 클릭']}, i++));
   arr.push(mk({text:'월간 생활목표 작성', law:'', cls:'gold', period:'monthly', day:1,
     steps:['일일업무일지 주요참고에 군생활 또는 한달간 생활목표 수립 및 작성']}, i++));
   arr.push(mk({text:'휴가조사', law:'', cls:'gold', period:'monthly', day:1,
@@ -719,6 +725,17 @@ function App() {
   const isMobile = useIsMobile();
   const [mode, setMode] = useState('cal');
   const [showUnitMenu, setShowUnitMenu] = useState(false); // 부대관리 드롭다운(업무일지/CD작업일지/휴가관리)
+  const [pwDates, setPwDates] = useState(load('gdt_pwdates')); // 국동체 계정 비밀번호 마지막 변경일 {기동대장:'YYYY-MM-DD', 행정병:'YYYY-MM-DD'}
+  const savePwDates = (obj) => { setPwDates(obj); save('gdt_pwdates', obj); };
+  const [showPwPanel, setShowPwPanel] = useState(false);
+  function pwDaysLeft(acct){
+    const d = pwDates[acct];
+    if(!d) return null;
+    const changed = new Date(d); changed.setHours(0,0,0,0);
+    const now = new Date(); now.setHours(0,0,0,0);
+    const passed = Math.round((now-changed)/(1000*60*60*24));
+    return 30 - passed;
+  }
   const [leaves, setLeaves] = useState(loadArr('gdt_leaves'));
   const saveLeaves = (arr) => { setLeaves(arr); save('gdt_leaves', arr); };
   const [leaveForm, setLeaveForm] = useState({person:'기동대장', name:'', start:'', end:'', memo:''});
@@ -834,7 +851,7 @@ function App() {
       changed = true;
     }
     // 새로 추가된 시드 업무(금전출납부 입력, 재산대장·데이터백업 등)를 기존 사용자 데이터에도 1회 자동 병합 (이름이 겹치면 건너뜀 — 직접 지운 건 다시 안 살아남)
-    const SEED_VERSION = 6;
+    const SEED_VERSION = 7;
     const seenVer = parseInt(localStorage.getItem('gdt_seed_ver')||'0');
     if(seenVer < 2){
       const existingTexts = new Set(result.map(t=>t.text));
@@ -905,6 +922,16 @@ function App() {
       if(fresh6.length){
         const maxOrder = Math.max(0, ...result.map(t=>t.order??0));
         result = [...result, ...fresh6.map((t,i)=>({...t, order:maxOrder+1+i}))];
+        changed = true;
+      }
+    }
+    if(seenVer < 7){
+      // 국동체 계정 비밀번호 변경(기동대장/행정병) 월간업무 자동 병합
+      const existingTexts7 = new Set(result.map(t=>t.text));
+      const fresh7 = seedMasterTasks().filter(t=>!existingTexts7.has(t.text));
+      if(fresh7.length){
+        const maxOrder = Math.max(0, ...result.map(t=>t.order??0));
+        result = [...result, ...fresh7.map((t,i)=>({...t, order:maxOrder+1+i}))];
         changed = true;
       }
     }
@@ -1933,6 +1960,9 @@ function App() {
                 <button onClick={exportAllData} style={{background:'transparent',border:`1px solid ${C.g5}`,color:C.txt2,padding:'3px 6px',fontSize:9,cursor:'pointer',fontFamily:fontMono}}>⬇</button>
                 <button onClick={()=>setShowCloudCfg(true)} style={{background:'transparent',border:`1px solid ${C.g5}`,color:cloudStatus==='연결됨'?C.g8:C.txt3,padding:'3px 6px',fontSize:9,cursor:'pointer',fontFamily:fontMono}}>⚙</button>
                 {cloudStatus==='연결됨' && <button onClick={()=>pushCloud(false)} style={{background:'transparent',border:`1px solid ${C.g8}`,color:C.g8,padding:'3px 6px',fontSize:9,cursor:'pointer',fontFamily:fontMono}}>💾</button>}
+                <button onClick={()=>setShowPwPanel(true)} style={{background:'transparent',border:`1px solid ${(()=>{const l=Math.min(pwDaysLeft('기동대장')??99,pwDaysLeft('행정병')??99);return l<=3?C.red2:l<=7?C.orange2:C.g5;})()}`,color:(()=>{const l=Math.min(pwDaysLeft('기동대장')??99,pwDaysLeft('행정병')??99);return l<=3?C.red2:l<=7?C.orange2:C.txt3;})(),padding:'3px 6px',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:fontMono}}>
+                  🔑{(()=>{const a=pwDaysLeft('기동대장'),b=pwDaysLeft('행정병');const m=Math.min(a??99,b??99);return (a==null&&b==null)?'미설정':(m<0?'잠김':'D-'+m);})()}
+                </button>
                 <div style={{fontFamily:fontMono,fontSize:13,fontWeight:700,color:C.gold}}>{clock.split('|')[0]}</div>
               </div>
             </div>
@@ -2019,9 +2049,14 @@ function App() {
                 </span>
               ))}
             </div>
-            <div style={{padding:'8px 0 8px 10px',borderLeft:`1px solid ${C.g4}`,textAlign:'right'}}>
-              <div style={{fontFamily:fontMono,fontSize:15,fontWeight:700,color:C.gold,letterSpacing:2}}>{clock.split('|')[0]}</div>
-              <div style={{fontSize:8,color:C.txt3,fontFamily:fontMono}}>{clock.split('|')[1]}</div>
+            <div style={{padding:'8px 0 8px 10px',borderLeft:`1px solid ${C.g4}`,textAlign:'right',display:'flex',alignItems:'center',gap:10}}>
+              <button onClick={()=>setShowPwPanel(true)} style={{background:'transparent',border:`1px solid ${(()=>{const l=Math.min(pwDaysLeft('기동대장')??99,pwDaysLeft('행정병')??99);return l<=3?C.red2:l<=7?C.orange2:C.g5;})()}`,color:(()=>{const l=Math.min(pwDaysLeft('기동대장')??99,pwDaysLeft('행정병')??99);return l<=3?C.red2:l<=7?C.orange2:C.txt2;})(),padding:'5px 9px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:fontMono,whiteSpace:'nowrap'}}>
+                🔑국동체 {(()=>{const a=pwDaysLeft('기동대장'),b=pwDaysLeft('행정병');return (a==null&&b==null)?'미설정':`D-대장${a==null?'?':(a<0?'잠김':a)} D-행정${b==null?'?':(b<0?'잠김':b)}`;})()}
+              </button>
+              <div>
+                <div style={{fontFamily:fontMono,fontSize:15,fontWeight:700,color:C.gold,letterSpacing:2}}>{clock.split('|')[0]}</div>
+                <div style={{fontSize:8,color:C.txt3,fontFamily:fontMono}}>{clock.split('|')[1]}</div>
+              </div>
             </div>
           </div>
         )}
@@ -3843,6 +3878,35 @@ function App() {
           </div>
         );
       })()}
+
+      {/* ══════════ 국동체 계정 비밀번호 D-day 패널 ══════════ */}
+      {showPwPanel && (
+        <div onClick={()=>setShowPwPanel(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:530,display:'flex',alignItems:isMobile?'flex-end':'center',justifyContent:'center'}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.bg1,border:`2px solid ${C.gold}`,width:isMobile?'100%':380,maxWidth:'96vw',padding:18}}>
+            <div style={{fontSize:14,fontWeight:900,color:C.gold,marginBottom:4}}>🔑 국동체 계정 비밀번호</div>
+            <div style={{fontSize:10,color:C.txt3,marginBottom:14,lineHeight:1.5}}>30일이 지나면 계정이 잠기고, 상급부대에 잠금해제 요청을 해야 합니다. 변경한 날 "오늘 변경함"을 눌러두면 자동으로 D-day가 계산됩니다.</div>
+            {['기동대장','행정병'].map(acct=>{
+              const left = pwDaysLeft(acct);
+              const locked = left!=null && left<0;
+              const color = left==null?C.txt3:locked?C.red2:left<=3?C.red2:left<=7?C.orange2:C.g8;
+              return (
+                <div key={acct} style={{border:`1px solid ${C.g4}`,borderLeft:`4px solid ${color}`,padding:'10px 12px',marginBottom:10}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontSize:13,fontWeight:700,color:C.tan}}>{acct} 계정</span>
+                    <span style={{fontSize:13,fontWeight:900,color,fontFamily:fontMono}}>{left==null?'미설정':locked?'🔒 잠김':'D-'+left}</span>
+                  </div>
+                  <div style={{fontSize:10,color:C.txt3,marginBottom:8}}>
+                    {pwDates[acct] ? `마지막 변경일: ${pwDates[acct]}` : '아직 변경일이 등록되지 않았습니다.'}
+                    {locked && <span style={{color:C.red2,fontWeight:700}}> — 상급부대에 잠금해제 요청 필요</span>}
+                  </div>
+                  <button onClick={()=>markPwChanged(acct)} style={{...s.btn(true),fontSize:11,padding:'6px 10px'}}>✓ 오늘 변경함</button>
+                </div>
+              );
+            })}
+            <button onClick={()=>setShowPwPanel(false)} style={{...s.btn(false),width:'100%',marginTop:4}}>닫기</button>
+          </div>
+        </div>
+      )}
 
       {/* ══════════ 업무 일정 이동 팝업 ══════════ */}
       {moveTarget && (
