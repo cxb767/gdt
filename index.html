@@ -100,12 +100,30 @@ const DAILY_SEED = [
   ['오후 업무','중요','소집통지서 전달 현황 확인','훈령 제10조',
     '모바일송달 미열람자는 우편→인편 순으로 전달.',
     ['전자문서발송결과 확인 (미열람자 확인)','미열람자 우편 소집통지서 발송','3차 대상자 중 미수령자는 인편 방문통보','미교부사유서 작성','발송건수를 일일업무일지에 작성']],
+  ['오후 업무','중요','전국단위훈련·휴일훈련 신청자 결과확인','',
+    '신청 결과와 실제 훈련결과(참석/무단불참) 반영 여부 확인.',
+    ['휴일·전국단위훈련 신청결과조회에서 신청자원 확인','잘못 신청한 인원 있으면 전화로 안내','훈련결과가 참석/무단불참으로 정상 반영됐는지 확인']],
+  ['오후 업무','중요','업무연락 확인·조치','',
+    '내용까지 확인 후 조치결과를 반드시 기록.',
+    ['업무연락에서 해당 내용 확인','일일업무일지에 제목과 조치결과 기록 (확인완료/조치완료/해당없음 중 선택)','월간행사계획에 반영할 내용 있는지 확인 후 반영']],
+  ['오후 업무','중요','민원접수 결산','',
+    '유선·방문·국동체 질의응답 건수를 종합해 기록.',
+    ['유선전화·동대방문 민원 건수 확인','국동체 질의응답 건수 확인','일일업무일지 주요참고에 건수 기록']],
   ['오후 업무','중요','편성카드·대원 명부 점검','',
     '전투편성 누락·오류 여부 정기 점검.',
     ['편성카드관리에서 대상자 조회','소속·직책·작전요소 편성 여부 확인','누락·오류 인원 수정']],
   ['오후 업무','중요','금전출납부 입력','',
     '부대운영비 결산 내용 입력.',
     ['부대관리→금전출납부→금전출납부 접속','해당일자 선택 → 해당 사업비(총괄/기타사업비 등) 항목에서 추가','내용 입력 후 저장','영수증 좌상단에 관리번호 작성 후 합철']],
+  ['퇴근 전 마감','정기','상향식 일일결산','',
+    '주요실시예정사항·행동강령·건의사항 순으로 정리 후 보고.',
+    ['주요 실시·예정사항 정리','병영생활행동강령 준수 여부 확인','애로 및 건의사항 확인','동대장 보고 → 대대장 보고']],
+  ['퇴근 전 마감','정기','보안일일결산','',
+    '비밀문서 현황과 저장매체 관리대장 일치여부, PC·CD 내 자료 보관여부 확인.',
+    ['정보현황(2·3급 비밀문서) 확인 및 변동사항 반영','저장매체 관리대장 현황 일치여부 확인','PC·CD 내 각종 군사자료 보관여부 확인 후 변동사항 기록']],
+  ['퇴근 전 마감','정기','전투준비태세 변경사항 확인','',
+    '변동사항 발생 시에만 처리 후 기록.',
+    ['전투준비태세 변경 여부 확인','변동사항 있으면 처리 후 내용 작성']],
   ['퇴근 전 마감','정기','일일업무일지 결과 입력·결재','QM:01101',
     '당일 실시업무 전부 반영 후 국동체 비밀번호로 결재.',
     ['금일 실시업무 결과 최종 입력','주요예정사항 확인','결재 클릭 → 국동체 비밀번호 입력 → 결재 완료','목록에서 결재일시 확인']],
@@ -137,6 +155,19 @@ function seedMasterTasks(){
   arr.push(mk({text:'무기장비 기준일', law:'규칙 제20조②', cls:'gold', period:'monthly', day:'last'}, i++));
   arr.push(mk({text:'핸드토키 채널 변경', law:'', cls:'gold', period:'monthly', day:15}, i++));
   arr.push(mk({text:'핸드토키 채널 변경', law:'', cls:'gold', period:'monthly', day:'last'}, i++));
+  arr.push(mk({text:'월중행사계획표 작성', law:'', cls:'gold', period:'monthly', day:1,
+    steps:['순기업무 작성 (분기 이상 업무는 구체적 일자 지정)','예비군교육훈련 주기 작성','기타 예정사항 작성','업무연락 확인 시 일정 반영 내용은 즉시 작성']}, i++));
+  arr.push(mk({text:'월간 생활목표 작성', law:'', cls:'gold', period:'monthly', day:1,
+    steps:['일일업무일지 주요참고에 군생활 또는 한달간 생활목표 수립 및 작성']}, i++));
+  arr.push(mk({text:'휴가조사', law:'', cls:'gold', period:'monthly', day:1,
+    howto:'행정병 휴가는 연차에 맞춰 균등 배정 (6개월 이내 6~10일, 7~12개월 7~10일, 13~18개월 4~11일).',
+    steps:['동대장·행정병 휴가 조사','지역대 보고','휴가일정·출타지·대리근무자 등 변경 필요 시 국방인사정보체계에서 변경']}, i++));
+  arr.push(mk({text:'군기강확립교육(상급부대)', law:'', cls:'gold', period:'nthweek', nth:[1], dow:1,
+    howto:'상급부대(연대) 계획 확인 후 참석.', steps:['상급부대 교육계획 확인','계획에 따라 교육 참석']}, i++));
+  arr.push(mk({text:'군기강확립교육(동대자체)', law:'', cls:'gold', period:'nthweek', nth:['last'], dow:5,
+    howto:'동대장 주관, 인권교육 포함하여 실시.', steps:['제식·용모복장·전화응대·경례 등 교육','군인의 지위 및 복무에 관한 기본법 교육','법규교육·인권교육 실시','교육 결과 일일업무일지에 기록']}, i++));
+  arr.push(mk({text:'월간병력결산', law:'', cls:'gold', period:'nthweek', nth:[2], dow:3,
+    steps:['전 병력 결산 전산입력','특이사항 등 기록 유지','결산 후 종합하여 인사과장에게 전달']}, i++));
   arr.push(mk({text:'재산대장 출력 유지', law:'', cls:'gold', period:'nthweek', nth:[1,4], dow:5,
     steps:['군수통합정보체계 기동대장 ID 접속','재산대장 열람 및 출력','재산대장 편철 유지']}, i++));
   arr.push(mk({text:'예비군자원관리 데이터 백업', law:'', cls:'gold', period:'nthweek', nth:[1,3], dow:1,
@@ -144,11 +175,25 @@ function seedMasterTasks(){
     steps:['국동체 인터넷PC D드라이브 조회→디스크에서 지우기','비상연락대상자·편성카드·전투편성명부·추가편성자·병력동원소집자명부·예비군동원소집자 순으로 각각 엑셀 다운로드 (다운로드 사유: 예비군데이터백업)','바탕화면에 저장 후 CD에 복사→굽기 (2장, 1장은 주 보조 보관)','보안관계철(CD/DVD 작업일지) 정리','일일업무일지 주요참고사항에 백업 완료·저장내용 입력']}, i++));
   arr.push(mk({text:'장비 분기점검', law:'', cls:'purple', period:'quarterly', day:'last'}, i++));
   arr.push(mk({text:'보안 분기진단', law:'', cls:'purple', period:'quarterly', day:'last'}, i++));
+  arr.push(mk({text:'분기별 생활목표 작성', law:'', cls:'purple', period:'quarterly', months:[1,4,7,10], day:1,
+    steps:['일일업무일지 주요참고에 군생활 또는 분기 생활계획 수립 및 작성']}, i++));
   arr.push(mk({text:'비상소집망 점검(7년차 이상)', law:'훈령 제31조③', cls:'orange', period:'halfyear', months:[1,7], day:15}, i++));
   arr.push(mk({text:'자원현황 기준일', law:'규칙 제9조③', cls:'red', period:'yearly', month:2, day:'last'}, i++));
   arr.push(mk({text:'자원현황 보고', law:'규칙 제9조③', cls:'red', period:'yearly', month:3, day:20}, i++));
   arr.push(mk({text:'내년 병력동원훈련계획 제출', law:'훈령 제17조②', cls:'red', period:'yearly', month:10, day:31}, i++));
   arr.push(mk({text:'내년 훈련계획 승인', law:'훈령 제17조②', cls:'red', period:'yearly', month:12, day:31}, i++));
+  arr.push(mk({text:'서류 연도이월 정리', law:'', cls:'red', period:'yearly', month:12, day:'last',
+    steps:['보고·접수 완료 서류 문서목록표(붙임#26) 작성','우측에 번호표 라벨 부착','합철 양식(붙임#27)에 목록 작성','연도이월 또는 양 초과 시 표지 교체 후 문서보관상자에 보관']}, i++));
+  arr.push(mk({text:'해당연도 바탕화면·화면보호기 교체', law:'', cls:'red', period:'yearly', month:1, day:1,
+    steps:['국동체 자료실→보안자료실에서 해당연도 바탕화면 확인 후 전환','화면보호기 해당연도로 교체 후 저장 및 실행','전년도 화면보호기 프로그램 제거']}, i++));
+  arr.push(mk({text:'총기손질의 날 행사', law:'', cls:'teal', period:'unplanned', needsPlanning:true,
+    howto:'대대 군수과에서 하달되는 계획에 따라 실시.', steps:['대대 군수과 계획 확인','예비군 총기손질 실시','무기·탄약고 출입일지에 서명']}, i++));
+  arr.push(mk({text:'연간 훈련계획 수립', law:'훈령 제10조⑤1', cls:'teal', period:'unplanned', needsPlanning:true,
+    howto:'연초에 다음 훈련계획 수립.', steps:['연간 훈련일정 초안 수립','대대 승인 요청']}, i++));
+  arr.push(mk({text:'연간 교육훈련 실시결과 보고', law:'훈령 제17조⑤2', cls:'teal', period:'unplanned', needsPlanning:true,
+    howto:'연말에 실시결과 종합 보고.', steps:['연간 교육훈련 실시결과 종합','대대에 보고']}, i++));
+  arr.push(mk({text:'방위협의회 참석', law:'', cls:'teal', period:'unplanned', needsPlanning:true,
+    howto:'주민센터에서 지정하는 날짜에 참석.'}, i++));
   return arr.map((t,idx)=>({...t, order:idx}));
 }
 
@@ -179,7 +224,8 @@ function computeOccurrenceDates(task, y, m){
       res.push({y,m,d:dd});
     }
   } else if(task.period==='quarterly'){
-    if([2,5,8,11].includes(m)){ const dd = task.day==='last'?last:Math.min(task.day,last); res.push({y,m,d:dd}); }
+    const qMonths = (task.months && task.months.length) ? task.months : [3,6,9,12]; // 기본은 분기말(3·6·9·12월), months 지정 시 그 달들만
+    if(qMonths.includes(m+1)){ const dd = task.day==='last'?last:Math.min(task.day,last); res.push({y,m,d:dd}); }
   } else if(task.period==='halfyear'){
     if((task.months||[]).includes(m+1)){ const dd = task.day==='last'?last:Math.min(task.day,last); res.push({y,m,d:dd}); }
   } else if(task.period==='yearly'){
@@ -771,7 +817,7 @@ function App() {
       changed = true;
     }
     // 새로 추가된 시드 업무(금전출납부 입력, 재산대장·데이터백업 등)를 기존 사용자 데이터에도 1회 자동 병합 (이름이 겹치면 건너뜀 — 직접 지운 건 다시 안 살아남)
-    const SEED_VERSION = 5;
+    const SEED_VERSION = 6;
     const seenVer = parseInt(localStorage.getItem('gdt_seed_ver')||'0');
     if(seenVer < 2){
       const existingTexts = new Set(result.map(t=>t.text));
@@ -834,6 +880,16 @@ function App() {
         }
         return t;
       });
+    }
+    if(seenVer < 6){
+      // 업무길라잡이 전수조사로 찾은 누락 업무 자동 병합 (보류 관련 제외 — 기동대는 보류업무 미해당)
+      const existingTexts6 = new Set(result.map(t=>t.text));
+      const fresh6 = seedMasterTasks().filter(t=>!existingTexts6.has(t.text));
+      if(fresh6.length){
+        const maxOrder = Math.max(0, ...result.map(t=>t.order??0));
+        result = [...result, ...fresh6.map((t,i)=>({...t, order:maxOrder+1+i}))];
+        changed = true;
+      }
     }
     if(seenVer < SEED_VERSION) localStorage.setItem('gdt_seed_ver', String(SEED_VERSION));
     if(changed) save(K.MT, result);
@@ -1518,7 +1574,7 @@ function App() {
     if(t.period==='weekly') return `${periodLabel.weekly} ${['일','월','화','수','목','금','토'][t.dow]}요일`;
     if(t.period==='nthweek') return `매월 ${(t.nth||[]).map(n=>WEEK_ORD[n]||n).join('·')}주 ${DOW_NAME[t.dow]}요일`;
     if(t.period==='monthly') { const dl=(t.days&&t.days.length)?t.days:[t.day]; return `${periodLabel.monthly} ${dl.map(dv=>dv==='last'?'말일':dv+'일').join('·')}`; }
-    if(t.period==='quarterly') return `${periodLabel.quarterly}`;
+    if(t.period==='quarterly') { const qm=(t.months&&t.months.length)?t.months:[3,6,9,12]; return `분기(${qm.join('·')}월) ${t.day==='last'?'말일':t.day+'일'}`; }
     if(t.period==='halfyear') return `${(t.months||[]).join('·')}월 ${t.day==='last'?'말일':t.day+'일'}`;
     if(t.period==='yearly') return `${t.month}월 ${t.day==='last'?'말일':t.day+'일'}`;
     if(t.period==='unplanned') return t.assignedDate?`지정일: ${t.assignedDate}`:'미지정';
@@ -2718,7 +2774,7 @@ function App() {
               </div>
 
               <button onClick={()=>setShowDdGrid(v=>!v)} style={{background:C.bg1,border:`1px solid ${C.g5}`,color:C.tan,padding:'6px 11px',fontSize:11,fontWeight:700,cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
-                📊 별표4 방식 소집통지 기간표 {showDdGrid?'▲':'▼'}
+                📊 소집통지 기간표 {showDdGrid?'▲':'▼'}
               </button>
               {showDdGrid && (()=>{
                 const ddTrainKeyG = viewedTrain?viewedTrain.trainDate:(ddEditDate||ddDate);
@@ -2726,7 +2782,7 @@ function App() {
                 const D0=new Date(ddTrainKeyG); D0.setHours(0,0,0,0);
                 const tod0=new Date(); tod0.setHours(0,0,0,0);
                 const todOffset = Math.round((tod0-D0)/(1000*60*60*24));
-                const START=-32, END=2;
+                const START=-35, END=2;
                 const cols=[]; for(let o=START;o<=END;o++){ const cd=new Date(D0.getTime()); cd.setDate(D0.getDate()+o); cols.push({o,cd}); }
                 const bands=[
                   {label:'인터넷 신청', from:-30, to:-23, color:C.blue3, bg:'rgba(26,95,180,.22)', caption:'(8일간) (신청일포함)30일전~(신청일포함)23일전'},
@@ -2734,35 +2790,41 @@ function App() {
                   {label:'이메일·우편·방문·FAX', from:-15, to:-8, color:C.red2, bg:'rgba(217,69,58,.22)', caption:'(8일간) (전달일포함)15일전~(전달일미포함)7일전'},
                 ];
                 const dows=['일','월','화','수','목','금','토'];
-                const cw=isMobile?30:36;
+                const cw=isMobile?32:38;
+                const milestones = new Set(ddSteps.map(s=>s.d)); // 실제 절차가 걸린 날짜(중요 날) — 헤더에서 눈에 띄게 표시
                 return (
                   <div style={{overflowX:'auto',border:`1px solid ${C.g4}`,marginBottom:12,background:C.bg1}}>
                     <div style={{display:'inline-block',minWidth:'100%'}}>
                       {/* 날짜 헤더 */}
                       <div style={{display:'flex'}}>
-                        <div style={{width:isMobile?110:170,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2}}/>
-                        {cols.map(c=>(
-                          <div key={c.o} style={{width:cw,flexShrink:0,textAlign:'center',borderRight:`1px solid rgba(0,0,0,.05)`,borderBottom:`1px solid ${C.g4}`,
-                            background:c.o===0?'rgba(200,160,64,.25)':(c.o===todOffset?'rgba(47,111,184,.18)':C.bg2),padding:'4px 0'}}>
-                            <div style={{fontSize:11,fontFamily:fontMono,color:c.o===0?C.gold2:C.txt,fontWeight:c.o===0?900:700}}>{c.cd.getMonth()+1}.{c.cd.getDate()}</div>
-                            <div style={{fontSize:9,fontFamily:fontMono,color:C.txt3}}>{dows[c.cd.getDay()]}</div>
-                            <div style={{fontSize:9,fontFamily:fontMono,color:c.o===0?C.gold2:C.txt3,fontWeight:c.o===0?900:400,marginTop:1}}>{c.o===0?'D-day':c.o>0?'D+'+c.o:'D'+c.o}</div>
+                        <div style={{width:isMobile?170:260,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2}}/>
+                        {cols.map(c=>{
+                          const isMilestone = milestones.has(c.o) && c.o!==0;
+                          return (
+                          <div key={c.o} style={{width:cw,flexShrink:0,textAlign:'center',borderRight:`1px solid rgba(0,0,0,.05)`,
+                            borderBottom:isMilestone?`3px solid ${C.gold}`:`1px solid ${C.g4}`,
+                            background:c.o===0?'rgba(200,160,64,.28)':(isMilestone?'rgba(200,160,64,.16)':(c.o===todOffset?'rgba(47,111,184,.18)':C.bg2)),padding:'4px 0'}}>
+                            <div style={{fontSize:14,fontFamily:fontMono,color:c.o===0?C.gold2:(isMilestone?C.gold:C.txt),fontWeight:c.o===0||isMilestone?900:700}}>{c.cd.getMonth()+1}.{c.cd.getDate()}</div>
+                            <div style={{fontSize:11,fontFamily:fontMono,color:c.o===0?C.gold2:(isMilestone?C.gold:C.txt3),fontWeight:isMilestone?700:400}}>{dows[c.cd.getDay()]}</div>
+                            <div style={{fontSize:11,fontFamily:fontMono,color:c.o===0?C.gold2:(isMilestone?C.gold:C.txt3),fontWeight:c.o===0||isMilestone?900:400,marginTop:1}}>{c.o===0?'D-day':c.o>0?'D+'+c.o:'D'+c.o}</div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       {/* 밴드 행들 */}
                       {bands.map((b,bi)=>(
                         <div key={bi} style={{display:'flex'}}>
-                          <div style={{width:isMobile?110:170,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2,
+                          <div style={{width:isMobile?170:260,flexShrink:0,borderRight:`1px solid ${C.g4}`,borderBottom:`1px solid ${C.g4}`,background:C.bg2,
                             display:'flex',flexDirection:'column',justifyContent:'center',padding:'4px 8px'}}>
-                            <span style={{fontSize:isMobile?11:13,color:b.color,fontWeight:700}}>{b.label}</span>
-                            <span style={{fontSize:isMobile?8:9,color:C.txt3,lineHeight:1.4,marginTop:1}}>{b.caption}</span>
+                            <span style={{fontSize:isMobile?12:14,color:b.color,fontWeight:700}}>{b.label}</span>
+                            <span style={{fontSize:isMobile?9:11,color:C.txt3,whiteSpace:'nowrap',marginTop:1}}>{b.caption}</span>
                           </div>
                           {cols.map(c=>{
                             const inBand = c.o>=b.from && c.o<=b.to;
+                            const isMilestone = milestones.has(c.o) && c.o!==0;
                             return (
                               <div key={c.o} style={{width:cw,flexShrink:0,height:38,borderRight:`1px solid rgba(0,0,0,.05)`,borderBottom:`1px solid ${C.g4}`,
-                                background:inBand?b.bg:'transparent',
+                                background:inBand?b.bg:(isMilestone?'rgba(200,160,64,.08)':'transparent'),
                                 borderTop:inBand?`2px solid ${b.color}`:'none', borderBottomWidth:inBand?2:1, borderBottomColor:inBand?b.color:C.g4,
                                 position:'relative'}}>
                                 {c.o===todOffset && <div style={{position:'absolute',left:'50%',top:-2,bottom:-2,width:2,background:C.blue3}}/>}
@@ -2773,14 +2835,14 @@ function App() {
                       ))}
                       {/* 전달완료 마감 / 훈련일 표시 행 */}
                       <div style={{display:'flex'}}>
-                        <div style={{width:isMobile?110:170,flexShrink:0,borderRight:`1px solid ${C.g4}`,background:C.bg2,
-                          display:'flex',alignItems:'center',padding:'4px 8px',fontSize:isMobile?11:13,color:C.red2,fontWeight:700}}>전달완료·훈련일</div>
+                        <div style={{width:isMobile?170:260,flexShrink:0,borderRight:`1px solid ${C.g4}`,background:C.bg2,
+                          display:'flex',alignItems:'center',padding:'4px 8px',fontSize:isMobile?12:14,color:C.red2,fontWeight:700}}>전달완료·훈련일</div>
                         {cols.map(c=>(
                           <div key={c.o} style={{width:cw,flexShrink:0,height:26,borderRight:`1px solid rgba(0,0,0,.05)`,
                             background:c.o===-8?'rgba(217,69,58,.35)':(c.o===0?'rgba(200,160,64,.35)':'transparent'),
                             display:'flex',alignItems:'center',justifyContent:'center'}}>
-                            {c.o===-8 && <span style={{fontSize:11,color:C.red2,fontWeight:900}}>★</span>}
-                            {c.o===0 && <span style={{fontSize:11,color:C.gold2,fontWeight:900}}>▲</span>}
+                            {c.o===-8 && <span style={{fontSize:13,color:C.red2,fontWeight:900}}>★</span>}
+                            {c.o===0 && <span style={{fontSize:13,color:C.gold2,fontWeight:900}}>▲</span>}
                           </div>
                         ))}
                       </div>
