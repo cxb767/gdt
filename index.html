@@ -1416,13 +1416,14 @@ function App() {
     for(const train of ddTrains) {
       const D = new Date(train.trainDate); D.setHours(0,0,0,0);
       const label = `${train.trainOrder||1}차 ${train.trainType}${train.trainName?' · '+train.trainName:''}`;
+      const trainShort = `${D.getMonth()+1}.${D.getDate()}`;
       for(const step of ddSteps) {
         const td = new Date(D.getTime()); td.setDate(D.getDate()+step.d);
         const stepKey = dk(td.getFullYear(), td.getMonth(), td.getDate());
         if(stepKey===key) {
           const dLabel = step.d===0?'D-day':step.d>0?`D+${step.d}`:`D${step.d}`;
           const lawPart = step.law && !GENERIC_LAW.has(step.law) ? ` · ${step.law}` : '';
-          tasks.push({ text:`[${dLabel}·${step.owner||'나'}담당] ${step.name}`, cls: step.cls||'blue', law:`${label}${lawPart}`,
+          tasks.push({ text:`[${trainShort} ${train.trainType} ${train.trainOrder||1}차 ${dLabel}] ${step.name}`, cls: step.cls||'blue', law:`${label}${lawPart}`,
             checkKey:`dd_${train.trainDate}_${step.id}`, steps: step.steps||[], howto:step.desc||'' });
         }
       }
